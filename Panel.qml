@@ -16,8 +16,9 @@ Panel {
   property var hostWidget: null
   readonly property var barIdentity: hostWidget || root
   // Scripts live next to this file (the repo root is the plugin), so no PATH setup is needed.
-  readonly property string pluginDir: Qt.resolvedUrl(".").toString().replace(/^file:\/\//, "")
+  readonly property string pluginDir: decodeURIComponent(Qt.resolvedUrl(".").toString().replace(/^file:\/\//, ""))
   readonly property string binDir: pluginDir + "bin/"
+  function shq(s) { return "'" + String(s).replace(/'/g, "'\\''") + "'" }   // shell-quote for bar.run()
   readonly property color fg: bar ? bar.foreground : Color.foreground
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
@@ -53,8 +54,8 @@ Panel {
     if (field === "login" && !e.login && e.email) field = "email"
     copier.field = field; copier.command = [binDir + "dashlane-copy", "--quiet", e.id, field]; copier.running = true; showToast("Copying…")
   }
-  function openApp() { close(); if (bar) bar.run(binDir + "dashlane-app") }
-  function finishSetup() { close(); if (bar) bar.run("omarchy-launch-floating-terminal-with-presentation " + pluginDir + "install.sh") }
+  function openApp() { close(); if (bar) bar.run(shq(binDir + "dashlane-app")) }
+  function finishSetup() { close(); if (bar) bar.run("omarchy-launch-floating-terminal-with-presentation " + shq(pluginDir + "install.sh")) }
   readonly property bool setupDone: dcliCheck.exitCode === 0
   Process { id: dcliCheck; property int exitCode: 0; command: ["sh", "-c", "command -v dcli"]; running: true; onExited: function (c) { exitCode = c } }
   function showToast(m) { toast = m; toastTimer.restart() }
