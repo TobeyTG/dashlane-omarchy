@@ -13,8 +13,8 @@ if ! command -v dcli >/dev/null || [[ "$(dcli --version)" != "$DCLI_VERSION" ]];
   echo "$DCLI_SHA256  $HOME/.local/bin/dcli.new" | sha256sum -c - || { rm -f ~/.local/bin/dcli.new; echo "checksum mismatch — aborting"; exit 1; }
   chmod +x ~/.local/bin/dcli.new && mv ~/.local/bin/dcli.new ~/.local/bin/dcli
 fi
-# Don't persist the master password: after `dashlane-lock` / reboot the vault needs a real unlock.
-timeout 5 dcli configure save-master-password false </dev/null >/dev/null 2>&1 || true
+# Keep dcli's default (master password encrypted in the OS keychain) — with it off, every dcli call
+# prompts interactively and the app can't work. Locking is done with `dcli lock` (see dashlane-lock).
 if dcli p -o json </dev/null >/dev/null 2>&1; then
   dashlane-menu-sync
 else

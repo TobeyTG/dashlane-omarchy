@@ -39,5 +39,5 @@ Click a row or press `→` to open the entry like the extension's detail pane: w
 - All auth/crypto is the official `dcli` (pinned release + sha256 in `install.sh`). The app never sees your master password — login happens in dcli's own terminal prompt.
 - `dashlane-list` strips `password`/`otpSecret` before anything reaches the app or menu; secrets are fetched per field on demand and travel only through pipes (never argv, never disk).
 - Clipboard: `wl-copy --sensitive` (kept out of Omarchy clipboard history), auto-cleared after 30s. Reveal hides after 10s and is wiped on quit.
-- `install.sh` sets `dcli configure save-master-password false`; `dashlane-lock` runs `dcli lock` + closes the app before the screen locks — set it as hypridle `lock_cmd`/`before_sleep_cmd` so the vault re-asks the master password after every lock/sleep.
+- `dashlane-lock` runs `dcli lock` + closes the app before the screen locks — set it as hypridle `lock_cmd`/`before_sleep_cmd` so the vault re-asks the master password after every lock/sleep.
 - Not covered (browser-extension territory): autofill and domain-matching. Keep the extension for in-browser logins.
