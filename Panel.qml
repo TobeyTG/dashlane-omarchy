@@ -51,13 +51,14 @@ Panel {
   function current() { return filtered[Math.max(0, Math.min(cursor, filtered.length - 1))] || null }
   function copy(field) {
     var e = current(); if (!e) return
+    if (copier.running) { showToast("Still copying…"); return }
     if (field === "login" && !e.login && e.email) field = "email"
     copier.field = field; copier.command = [binDir + "dashlane-copy", "--quiet", e.id, field]; copier.running = true; showToast("Copying…")
   }
   function openApp() { close(); if (bar) bar.run(shq(binDir + "dashlane-app")) }
   function finishSetup() { close(); if (bar) bar.run("omarchy-launch-floating-terminal-with-presentation " + shq(pluginDir + "install.sh")) }
   readonly property bool setupDone: dcliCheck.exitCode === 0
-  Process { id: dcliCheck; property int exitCode: 0; command: ["sh", "-c", "command -v dcli"]; running: true; onExited: function (c) { exitCode = c } }
+  Process { id: dcliCheck; property int exitCode: 0; command: ["sh", "-c", "command -v dcli || test -x \"$HOME/.local/bin/dcli\""]; running: true; onExited: function (c) { exitCode = c } }
   function showToast(m) { toast = m; toastTimer.restart() }
 
   Process { id: loader; command: [root.binDir + "dashlane-list"]
@@ -104,10 +105,10 @@ Panel {
           if (ev.key === Qt.Key_Escape) root.close()
           else if (ev.key === Qt.Key_Down) root.cursor = Math.min(root.cursor + 1, root.filtered.length - 1)
           else if (ev.key === Qt.Key_Up) root.cursor = Math.max(root.cursor - 1, 0)
+          else if (ctrl && (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter)) root.openApp()   // before the plain ⏎ branch
           else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) { if (root.locked) root.openApp(); else root.copy("password") }
           else if (ctrl && ev.key === Qt.Key_L) root.copy("login")
           else if (ctrl && ev.key === Qt.Key_O) root.copy("otp")
-          else if (ctrl && ev.key === Qt.Key_Return) root.openApp()
           else ev.accepted = false
         }
       }
