@@ -54,15 +54,18 @@ Singleton {
   function clearSecrets() { root.shownPassword = ""; root.otpCode = ""; root.noteText = ""; pwTimer.stop() }
   function closeSidebar() { root.sidebarOpen = false; root.clearSecrets() }
 
+  // Two processes so a slow/looping OTP refresh can never block a password/note reveal.
   Process { id: fielder; property string which
     stdout: StdioCollector { onStreamFinished: {
       var t = text.replace(/\n$/, "")
       if (fielder.which === "password") { root.shownPassword = t; pwTimer.restart() }
-      else if (fielder.which === "otp") root.otpCode = t
       else if (fielder.which === "note") root.noteText = t
     } } }
+  Process { id: otpFetcher; stdout: StdioCollector { onStreamFinished: root.otpCode = text.replace(/\n$/, "") } }
   function fetch(which) {
-    if (!root.selected || fielder.running) return
+    if (!root.selected) return
+    if (which === "otp") { if (!otpFetcher.running) { otpFetcher.command = ["dashlane-field", root.selected.id, "otp"]; otpFetcher.running = true } return }
+    if (fielder.running) return
     fielder.which = which; fielder.command = ["dashlane-field", root.selected.id, which]; fielder.running = true
   }
   function togglePassword() { if (root.shownPassword) { root.shownPassword = ""; pwTimer.stop() } else root.fetch("password") }
@@ -70,11 +73,12 @@ Singleton {
   function reveal(entry) { root.select(entry, true); root.togglePassword() }
   Timer { id: pwTimer; interval: 10000; onTriggered: root.shownPassword = "" }
 
-  // OTP: refetch at each 30s boundary while the sidebar shows an entry with OTP
+  // OTP: fetch once when shown, then only at each 30s boundary (dcli costs ~0.6s per call).
   property int otpLeft: 30
   Timer { interval: 1000; repeat: true; triggeredOnStart: true
     running: root.sidebarOpen && !!root.selected && !!root.selected.hasOtp
-    onTriggered: { root.otpLeft = 30 - (Math.floor(Date.now() / 1000) % 30); if (root.otpLeft === 30 || !root.otpCode) root.fetch("otp") } }
+    onRunningChanged: if (running) root.fetch("otp")
+    onTriggered: { var left = 30 - (Math.floor(Date.now() / 1000) % 30); if (left > root.otpLeft) root.fetch("otp"); root.otpLeft = left } }
 
   // ---- actions ----
   signal toast(string message)
@@ -83,7 +87,7 @@ Singleton {
     onExited: function (code) { root.toast(code === 0 ? "Copied " + copier.what + " for " + root.host(copier.entry) + " · clears in 30s" : "Copy failed — vault locked?") } }
   function copy(entry, field) {
     if (!entry) return
-    copier.what = field; copier.entry = entry; copier.command = ["dashlane-copy", entry.id, field]; copier.running = true
+    copier.what = field; copier.entry = entry; copier.command = ["dashlane-copy", entry.id, field, root.host(entry)]; copier.running = true
   }
   Process { id: opener }
   function openUrl(entry) {
