@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# dashlane-copy <id> [password|login|email|otp] — copy one field to clipboard
+set -euo pipefail
+id=$1; field=${2:-password}
+if dcli p "id=$id" -f "$field" -o clipboard 2>/dev/null; then
+  notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field" 2>/dev/null || true
+else
+  notify-send -a Dashlane -u critical "Dashlane" "Vault locked — run: dcli sync" 2>/dev/null || true
+  exit 1
+fi

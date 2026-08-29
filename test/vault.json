@@ -1,0 +1,5 @@
+[
+ {"id":"aaa","title":"GitHub","url":"https://github.com","login":"tobi","password":"x","otpSecret":"JBSWY3DP"},
+ {"id":"bbb","title":"Amazon","url":"https://www.amazon.de/","email":"t@example.com","password":"y"},
+ {"id":"ccc","url":"https://example.org","password":"z"}
+]

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Regenerate the "Passwords" submenu in ~/.config/omarchy/extensions/omarchy-menu.jsonc
+# from the Dashlane vault. Only titles/logins are written — never secrets.
+# Usage: dashlane-menu-sync [vault.json]   (file arg = offline/test input)
+set -euo pipefail
+menu=${DASHLANE_MENU_FILE:-$HOME/.config/omarchy/extensions/omarchy-menu.jsonc}
+src=${1:-}
+
+json=$( [[ -n $src ]] && cat "$src" || dcli p -o json )
+
+block=$(jq -r '
+  sort_by(.title // .url // "" | ascii_downcase) | to_entries[] | .value as $c |
+  ($c.title // $c.url // "untitled") as $label |
+  ($c.login // $c.email // "") as $login |
+  "  \"passwords.\(.key)\": {\"icon\":\"󰌾\",\"label\":\($label|tojson),\"description\":\($login|tojson)},\n" +
+  "  \"passwords.\(.key).pw\": {\"icon\":\"󰌾\",\"label\":\"Copy password\",\"action\":\"dashlane-copy \($c.id) password\"},\n" +
+  "  \"passwords.\(.key).login\": {\"icon\":\"󰀄\",\"label\":\"Copy login\",\"action\":\"dashlane-copy \($c.id) login\"},\n" +
+  (if ($c.otpSecret // "") != "" then "  \"passwords.\(.key).otp\": {\"icon\":\"󰦝\",\"label\":\"Copy OTP\",\"action\":\"dashlane-copy \($c.id) otp\"}," else "" end)
+' <<<"$json")
+
+start='  // >>> dashlane-omarchy (generated, do not edit)'
+end='  // <<< dashlane-omarchy'
+genf=$(mktemp)
+{
+  echo "$start"
+  echo '  "passwords": {"icon":"󰌆","label":"Passwords","aliases":["dashlane","pw"]},'
+  echo '  "passwords.sync": {"icon":"󰑐","label":"Sync vault","action":"dashlane-sync"},'
+  echo '  "passwords.app": {"icon":"󰆍","label":"Open app","action":"dashlane-app"},'
+  echo "$block"
+  echo "$end"
+} > "$genf"
+
+mkdir -p "$(dirname "$menu")"
+[[ -f $menu ]] || printf '{\n}\n' > "$menu"
+# drop old block, then insert new one right after the opening brace
+tmp=$(mktemp)
+awk -v s="$start" -v e="$end" '$0==s{skip=1} !skip{print} $0==e{skip=0}' "$menu" | sed "0,/^{/{/^{/r $genf
+}" > "$tmp"
+mv "$tmp" "$menu"; rm "$genf"
+echo "wrote $(grep -c '"passwords\.[0-9]*":' "$menu") entries to $menu"

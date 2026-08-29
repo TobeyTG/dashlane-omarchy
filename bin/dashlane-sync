@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Sync the vault in a floating terminal (dcli may prompt for master password), then rebuild the menu.
+exec omarchy-launch-floating-terminal-with-presentation "dcli sync && dashlane-menu-sync"
