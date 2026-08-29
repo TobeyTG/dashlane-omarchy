@@ -7,6 +7,7 @@ Rectangle {
   readonly property var e: Vault.selected || ({})
   visible: Vault.sidebarOpen && !!Vault.selected
   radius: 12; color: Theme.bg2
+  Layout.minimumWidth: 300; Layout.maximumWidth: 300   // fixed: long values elide, they never widen the window
 
   Flickable { anchors.fill: parent; anchors.margins: 16; contentHeight: col.height; clip: true; flickableDirection: Flickable.VerticalFlick
     ColumnLayout { id: col; width: parent.width; spacing: 14
