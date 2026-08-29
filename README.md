@@ -18,7 +18,7 @@ test/test.sh             self-check for menu generation
 
 ## Install
 ```sh
-./install.sh        # symlinks into ~/.local/bin, installs dcli if missing
+./install.sh        # symlinks into ~/.local/bin, installs dcli if missing, makes hypridle lock the vault with the screen (./uninstall.sh reverts)
 dcli sync           # first login (interactive), then:
 dashlane-menu-sync
 ```

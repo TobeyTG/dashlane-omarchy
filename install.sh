@@ -20,14 +20,21 @@ if dcli p -o json </dev/null >/dev/null 2>&1; then
 else
   echo "vault not unlocked — run: dcli sync    then: dashlane-menu-sync"
 fi
+# Lock the vault together with the screen: point hypridle's lock_cmd/before_sleep_cmd at dashlane-lock
+# (which then execs omarchy-system-lock). Idempotent; a timestamped backup is kept.
+idle=~/.config/hypr/hypridle.conf
+if [[ -f $idle ]] && ! grep -q dashlane-lock "$idle"; then
+  cp "$idle" "$idle.bak.$(date +%s)"
+  sed -i -E 's/^(\s*lock_cmd\s*=\s*)omarchy-system-lock/\1dashlane-lock/; s/^(\s*before_sleep_cmd\s*=.*)omarchy-system-lock/\1dashlane-lock/' "$idle"
+  omarchy restart hypridle >/dev/null 2>&1 || true
+  echo "hypridle: vault now locks with the screen (lock_cmd = dashlane-lock)"
+fi
+
 cat <<'HINT'
 
 Optional, add to ~/.config/hypr/bindings.lua:
   o.bind("SUPER + SHIFT + P", "Passwords", "dashlane-app")
   o.bind("SUPER + ALT + P",   "Passwords menu", "omarchy-menu summon passwords")
-Recommended (locks the vault whenever the screen locks or the laptop sleeps), in ~/.config/hypr/hypridle.conf:
-  lock_cmd = dashlane-lock
-  before_sleep_cmd = OMARCHY_LOCK_ONLY=true dashlane-lock
 and to ~/.config/hypr/windows.lua (float the app):
   hl.windowrule({ float = true, size = "720 520", center = true, match = { title = "^Dashlane$" } })
 HINT
