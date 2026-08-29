@@ -68,6 +68,7 @@ Singleton {
     if (fielder.running) return
     fielder.which = which; fielder.command = ["dashlane-field", root.selected.id, which]; fielder.running = true
   }
+  readonly property bool fetching: fielder.running
   function togglePassword() { if (root.shownPassword) { root.shownPassword = ""; pwTimer.stop() } else root.fetch("password") }
   function toggleNote() { if (root.noteText) root.noteText = ""; else root.fetch("note") }
   function reveal(entry) { root.select(entry, true); root.togglePassword() }
@@ -88,7 +89,7 @@ Singleton {
   function copy(entry, field) {
     if (!entry) return
     if (field === "login" && !entry.login && entry.email) field = "email"   // skip dcli's failing login lookup
-    copier.what = field; copier.entry = entry; copier.command = ["dashlane-copy", entry.id, field, root.host(entry)]; copier.running = true
+    copier.what = field; copier.entry = entry; copier.command = ["dashlane-copy", entry.id, field, root.host(entry)]; copier.running = true; root.toast("Copying " + field + "…")
   }
   Process { id: opener }
   function openUrl(entry) {

@@ -7,7 +7,7 @@ import Quickshell
 ShellRoot {
   property string toast: ""
   Connections { target: Vault; function onToast(m) { toast = m; toastTimer.restart() } }
-  Timer { id: toastTimer; interval: 1800; onTriggered: toast = "" }
+  Timer { id: toastTimer; interval: 2500; onTriggered: toast = "" }
 
   FloatingWindow {
     title: "Dashlane"

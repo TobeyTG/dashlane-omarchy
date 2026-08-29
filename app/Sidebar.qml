@@ -24,7 +24,7 @@ Rectangle {
       Field { label: "Login"; value: root.e.login || ""; visible: !!root.e.login; hasAction: true; onAction: Vault.copy(root.e, "login") }
       Field { label: "Email"; value: root.e.email || ""; visible: !!root.e.email; hasAction: true; onAction: Vault.copy(root.e, "email") }
       Field { label: "Secondary login"; value: root.e.secondaryLogin || ""; visible: !!root.e.secondaryLogin }
-      Field { label: "Password"; secret: true; shown: !!Vault.shownPassword; value: Vault.shownPassword || "•"; mono: !!Vault.shownPassword
+      Field { label: "Password"; secret: true; shown: !!Vault.shownPassword || Vault.fetching; value: Vault.shownPassword || (Vault.fetching ? "fetching…" : "•"); mono: !!Vault.shownPassword
         hasToggle: true; onToggle: Vault.togglePassword(); hasAction: true; onAction: Vault.copy(root.e, "password") }
       ColumnLayout { visible: !!root.e.hasOtp; spacing: 4; Layout.fillWidth: true
         Field { label: "One-time code"; value: Vault.otpCode.replace(/(\d{3})(?=\d)/g, "$1 "); mono: true; hasAction: true; onAction: Vault.copy(root.e, "otp") }
@@ -32,7 +32,7 @@ Rectangle {
           Rectangle { width: parent.width * Vault.otpLeft / 30; height: parent.height; radius: 2; color: Vault.otpLeft <= 5 ? Theme.red : Theme.green
             Behavior on width { NumberAnimation { duration: 900 } } } }
       }
-      Field { label: "Note"; visible: !!root.e.hasNote; value: Vault.noteText; secret: true; shown: !!Vault.noteText; hasToggle: true; onToggle: Vault.toggleNote() }
+      Field { label: "Note"; visible: !!root.e.hasNote; value: Vault.noteText || (Vault.fetching ? "fetching…" : ""); secret: true; shown: !!Vault.noteText || Vault.fetching; hasToggle: true; onToggle: Vault.toggleNote() }
       Rectangle { Layout.fillWidth: true; height: 1; color: Theme.bg3 }
 
       Field { label: "Category"; value: root.e.category || ""; visible: !!root.e.category }

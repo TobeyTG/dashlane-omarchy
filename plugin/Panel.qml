@@ -32,7 +32,13 @@ Panel {
     }).slice(0, maxRows)
   }
 
-  function open() { root.controller.show(); refresh(); search.text = ""; cursor = 0 }
+  // Keep the cached list between opens (dashlane-list costs ~0.65s); refresh in the background
+  // when it's older than 5 minutes or empty, so the popup is instant with the last known entries.
+  property double loadedAt: 0
+  function open() {
+    root.controller.show(); search.text = ""; cursor = 0
+    if (!entries.length || Date.now() - loadedAt > 300000) refresh()
+  }
   function openFromHotkey() { open() }
   function close() { root.controller.hide() }
   function toggle() { root.opened ? close() : open() }
@@ -43,14 +49,14 @@ Panel {
   function copy(field) {
     var e = current(); if (!e) return
     if (field === "login" && !e.login && e.email) field = "email"
-    copier.field = field; copier.command = [binDir + "dashlane-copy", e.id, field]; copier.running = true
+    copier.field = field; copier.command = [binDir + "dashlane-copy", e.id, field]; copier.running = true; showToast("Copying…")
   }
   function openApp() { close(); if (bar) bar.run(binDir + "dashlane-app") }
   function showToast(m) { toast = m; toastTimer.restart() }
 
   Process { id: loader; command: [root.binDir + "dashlane-list"]
-    stdout: StdioCollector { onStreamFinished: { try { root.entries = JSON.parse(text).sort(function (a, b) { return root.name(a).toLowerCase() < root.name(b).toLowerCase() ? -1 : 1 }) } catch (e) {} } }
-    onExited: function (code) { root.locked = code !== 0 } }
+    stdout: StdioCollector { onStreamFinished: { try { root.entries = JSON.parse(text).sort(function (a, b) { return root.name(a).toLowerCase() < root.name(b).toLowerCase() ? -1 : 1 }); root.loadedAt = Date.now() } catch (e) {} } }
+    onExited: function (code) { root.locked = code !== 0; if (code !== 0) root.entries = [] } }
   Process { id: copier; property string field; stdout: StdioCollector {}
     onExited: function (code) { if (code === 0) { root.showToast("Copied " + copier.field); closeTimer.restart() } else root.showToast("Copy failed") } }
   Timer { id: toastTimer; interval: 1500; onTriggered: root.toast = "" }
@@ -81,7 +87,7 @@ Panel {
       TextField {
         id: search
         width: parent.width
-        placeholderText: root.locked ? "Vault locked" : "Search vault…"
+        placeholderText: root.locked ? "Vault locked" : (loader.running && !root.entries.length ? "Loading vault…" : "Search vault…")
         enabled: !root.locked
         foreground: root.fg
         font.family: root.fontFamily
