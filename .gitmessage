@@ -1,0 +1,7 @@
+# type(scope): summary (≤72 chars, imperative, no period)
+#
+# Body: what and why, not how. Wrap at 72.
+#
+# Footer: BREAKING CHANGE: … / Closes #123
+# types:  feat fix perf refactor docs test style chore ci build
+# scopes: app bar cli copy install plugin menu security test

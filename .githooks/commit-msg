@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Conventional Commits: type(scope)!: summary — enable with: git config core.hooksPath .githooks
+first=$(grep -m1 -v '^#' "$1")
+if ! grep -qE '^(feat|fix|perf|refactor|docs|test|style|chore|ci|build)(\([a-z-]+\))?!?: [^ ].{0,70}$' <<<"$first"; then
+  echo "commit-msg: use 'type(scope): summary' (feat|fix|perf|refactor|docs|test|style|chore|ci|build), ≤72 chars" >&2
+  exit 1
+fi
