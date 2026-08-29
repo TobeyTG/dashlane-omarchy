@@ -69,7 +69,7 @@ o.bind("SUPER + ALT + P",   "Passwords menu", "omarchy-menu summon passwords")
 - **Auth and crypto are `dcli`'s.** Pinned release, sha256-verified. Unlock is dcli's own prompt.
 - **Secrets never enter the UI wholesale.** `dashlane-list` strips `password`/`otpSecret`. Opening an entry in the sidebar fetches *that entry's* password (so reveal/copy are instant) and its OTP; the note only on request. Fields travel through pipes only (never argv, never disk) and are cleared on entry change, close, quit or lock. The bar popup and the menu never prefetch anything.
 - **"Cleared" means at the application level.** QML/JS strings can't be scrubbed from memory; the same is true inside `dcli` (Node). Memory forensics on a live session are out of scope — see SECURITY.md.
-- **Clipboard.** `wl-copy --sensitive` (Omarchy's clipboard history skips it), cleared after 30 s.
+- **Clipboard.** `wl-copy --sensitive` (Omarchy's clipboard history skips it; needs wl-clipboard ≥ 2.2.2, which Omarchy ships — older versions fall back to a plain copy), cleared after 30 s.
 - **Lock.** `dashlane-lock` runs `dcli lock` before the screen locks or the laptop sleeps.
 - **Not covered:** autofill and domain matching — keep the browser extension for in-browser logins. Password history isn't exported by `dcli`.
 

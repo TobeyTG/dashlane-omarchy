@@ -32,7 +32,10 @@ if ! secret=$(get); then
   fi
 fi
 fi
-printf '%s' "$secret" | tr -d '\n' | setsid wl-copy --sensitive -t text/plain   # setsid: survive the caller (app) exiting
+# --sensitive (wl-clipboard ≥ 2.2.2) keeps the value out of Omarchy's clipboard history; older
+# versions lack the flag, so feature-detect it. setsid: the server must survive the caller exiting.
+sensitive=(); wl-copy --help 2>&1 | grep -q -- --sensitive && sensitive=(--sensitive)
+printf '%s' "$secret" | tr -d '\n' | setsid wl-copy "${sensitive[@]}" -t text/plain
 notify "Dashlane" "Copied $field${label:+ for $label} (clears in 30s)"
 # fallback clear: after 30s, wipe the clipboard if it still holds this secret (compared via stdin, not argv)
 # shellcheck disable=SC2016  # $s is expanded by the inner bash on purpose
