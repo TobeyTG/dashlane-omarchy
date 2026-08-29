@@ -6,6 +6,7 @@ DCLI_VERSION=6.2633.2
 DCLI_SHA256=55d9eae31e983081441e7b27ee287fda93989a7bff617bbab9a70aa61b326acc
 mkdir -p ~/.local/bin
 for f in "$here"/bin/*; do ln -sf "$f" ~/.local/bin/; done
+mkdir -p ~/.local/share/applications && ln -sf "$here/dashlane-omarchy.desktop" ~/.local/share/applications/
 # Official dcli, pinned to a release + sha256 (see DCLI_VERSION / DCLI_SHA256 at the top of this file).
 if ! command -v dcli >/dev/null || [[ "$(dcli --version)" != "$DCLI_VERSION" ]]; then
   echo "installing dcli $DCLI_VERSION (official Dashlane CLI) to ~/.local/bin"
