@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
-# dashlane-copy <id> [password|login|email|otp] — copy one field to clipboard (cleared after 30s).
-# dcli's own clipboard output is broken on Wayland, so we pipe console output into wl-copy.
+# dashlane-copy <id> [password|login|email|otp] — copy one field to the clipboard.
+# Security: the secret only ever travels through pipes (never argv, never disk).
+# --sensitive keeps it out of clipboard history (Omarchy honours the hint); cleared after 30s.
+# (--paste-once is useless here: Omarchy's history watcher performs the first paste itself.)
 # If the vault is locked, opens a terminal with the official CLI login (dcli sync) and retries.
 set -euo pipefail
 id=$1; field=${2:-password}
-locked() { ! timeout 20 dcli p "id=$id" -o json </dev/null >/dev/null 2>&1; }
+dc() { timeout 20 dcli p "id=$id" "$@" </dev/null; }
+locked() { ! dc -o json >/dev/null 2>&1; }
 get() {  # login falls back to email (dcli errors if the entry has only one of them)
   local f; for f in "$field" $([[ $field == login ]] && echo email); do
-    timeout 20 dcli p "id=$id" -f "$f" -o console </dev/null 2>/dev/null && return; done; return 1
+    dc -f "$f" -o console 2>/dev/null && return; done; return 1
 }
 if locked; then
   notify-send -a Dashlane "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal" 2>/dev/null || true
   omarchy-launch-floating-terminal-with-presentation "dcli sync" || true
   sleep 2; while pgrep -f "dcli sync" >/dev/null; do sleep 1; done   # launcher detaches; wait for the login to finish
 fi
-secret=$(get) || { notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1; }
-printf '%s' "$secret" | wl-copy
-notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field (clears in 30s)" 2>/dev/null || true
-setsid bash -c 'sleep 30; [[ "$(wl-paste 2>/dev/null)" == "$1" ]] && wl-copy --clear' _ "$secret" >/dev/null 2>&1 < /dev/null &
+host=$(dc -o json 2>/dev/null | jq -r '.[0].url // .[0].title // ""' | sed -E 's#^https?://##; s#^www\.##; s#/.*##')
+get | tr -d '\n' | wl-copy --sensitive -t text/plain || { notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1; }
+notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field for $host (clears in 30s)" 2>/dev/null || true
+# fallback clear: after 30s, wipe the clipboard if it still holds this secret (compared via stdin, not argv)
+get | tr -d '\n' | setsid bash -c 'IFS= read -r s; sleep 30; [[ "$(wl-paste -n 2>/dev/null)" == "$s" ]] && wl-copy --clear' >/dev/null 2>&1 &

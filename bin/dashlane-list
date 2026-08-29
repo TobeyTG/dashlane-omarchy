@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Vault metadata as JSON — id/title/url/login/email/hasOtp. No secrets.
+set -euo pipefail
+timeout 20 dcli p -o json </dev/null | jq 'map({id,title,url,login,email,hasOtp:((.otpSecret // "") != "")})'

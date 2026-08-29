@@ -6,7 +6,8 @@ set -euo pipefail
 menu=${DASHLANE_MENU_FILE:-$HOME/.config/omarchy/extensions/omarchy-menu.jsonc}
 src=${1:-}
 
-json=$( [[ -n $src ]] && cat "$src" || dcli p -o json </dev/null )
+strip='map({id,title,url,login,email,hasOtp:((.otpSecret // "") != "")})'
+json=$( [[ -n $src ]] && jq "$strip" "$src" || dashlane-list )   # metadata only — secrets never enter this script
 
 block=$(jq -r '
   sort_by(.title // .url // "" | ascii_downcase) | to_entries[] | .value as $c |
@@ -15,7 +16,7 @@ block=$(jq -r '
   "  \"passwords.\(.key)\": {\"icon\":\"󰌾\",\"label\":\($label|tojson),\"description\":\($login|tojson)},\n" +
   "  \"passwords.\(.key).pw\": {\"icon\":\"󰌾\",\"label\":\"Copy password\",\"action\":\"dashlane-copy \($c.id) password\"},\n" +
   "  \"passwords.\(.key).login\": {\"icon\":\"󰀄\",\"label\":\"Copy login\",\"action\":\"dashlane-copy \($c.id) login\"},\n" +
-  (if ($c.otpSecret // "") != "" then "  \"passwords.\(.key).otp\": {\"icon\":\"󰦝\",\"label\":\"Copy OTP\",\"action\":\"dashlane-copy \($c.id) otp\"}," else "" end)
+  (if $c.hasOtp then "  \"passwords.\(.key).otp\": {\"icon\":\"󰦝\",\"label\":\"Copy OTP\",\"action\":\"dashlane-copy \($c.id) otp\"}," else "" end)
 ' <<<"$json")
 
 start='  // >>> dashlane-omarchy (generated, do not edit)'

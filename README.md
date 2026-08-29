@@ -28,3 +28,10 @@ Then `omarchy menu summon passwords` or `dashlane-app`. See install.sh output fo
 - Omarchy menu `provider`s are hardcoded, so the menu is generated statically; re-run `dashlane-menu-sync` (or "Sync vault" in the menu) after adding entries.
 - If the vault is locked, `dcli` prompts interactively — run `dcli sync` in a terminal, then `^R`.
 - Test: `test/test.sh`. Preview app with fixture: `DASHLANE_JSON=$PWD/test/vault.json dashlane-app`.
+
+## Security model
+- All auth/crypto is the official `dcli` (pinned release + sha256 in `install.sh`). The app never sees your master password — login happens in dcli's own terminal prompt.
+- `dashlane-list` strips `password`/`otpSecret` before anything reaches the app or menu; secrets are fetched per field on demand and travel only through pipes (never argv, never disk).
+- Clipboard: `wl-copy --sensitive` (kept out of Omarchy clipboard history), auto-cleared after 30s. Reveal hides after 10s and is wiped on quit.
+- `install.sh` sets `dcli configure save-master-password false`; `dashlane-lock` runs `dcli lock` + closes the app before the screen locks — set it as hypridle `lock_cmd`/`before_sleep_cmd` so the vault re-asks the master password after every lock/sleep.
+- Not covered (browser-extension territory): autofill and domain-matching. Keep the extension for in-browser logins.

@@ -38,8 +38,8 @@ ShellRoot {
   // --- data ---
   Process {
     id: loader
-    // stdin closed + timeout: without a tty dcli would otherwise sit forever on its password prompt
-    command: Quickshell.env("DASHLANE_JSON") ? ["cat", Quickshell.env("DASHLANE_JSON")] : ["sh", "-c", "timeout 20 dcli p -o json </dev/null"]
+    // dashlane-list strips passwords/otp secrets before anything reaches this process
+    command: Quickshell.env("DASHLANE_JSON") ? ["cat", Quickshell.env("DASHLANE_JSON")] : ["dashlane-list"]
     running: true
     stdout: StdioCollector { onStreamFinished: root.parse(text) }
     onExited: function (code) { root.locked = code !== 0; if (code === 0) root.loggingIn = false; else root.status = "" }
@@ -62,9 +62,9 @@ ShellRoot {
   }
   function reload() { root.status = "Loading vault…"; root.locked = false; loader.running = false; loader.running = true }
 
-  Process { id: copier; property string what
+  Process { id: copier; property string what; property var entry: ({})
     stdout: StdioCollector {}
-    onExited: function (code) { root.showToast(code === 0 ? "Copied " + copier.what + " · clears in 30s" : "Copy failed — vault locked?") } }
+    onExited: function (code) { root.showToast(code === 0 ? "Copied " + copier.what + " for " + root.host(copier.entry) + " · clears in 30s" : "Copy failed — vault locked?") } }
   // Reveal: fetch the secret once, show it under the row for 10s, never keep it around longer.
   property string revealedId: ""
   property string revealedText: ""
@@ -87,7 +87,7 @@ ShellRoot {
   }
   function copy(entry, field) {
     if (!entry) return
-    copier.what = field
+    copier.what = field; copier.entry = entry
     copier.command = ["dashlane-copy", entry.id, field]
     copier.running = true
   }
@@ -127,7 +127,7 @@ ShellRoot {
               var e = list.currentItem ? list.currentItem.entry : null
               if (ev.key === Qt.Key_Down) { list.incrementCurrentIndex(); ev.accepted = true }
               else if (ev.key === Qt.Key_Up) { list.decrementCurrentIndex(); ev.accepted = true }
-              else if (ev.key === Qt.Key_Escape) Qt.quit()
+              else if (ev.key === Qt.Key_Escape) { root.hideReveal(); Qt.quit() }
               else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) { if (root.locked) login.running = true; else root.copy(e, "password") }
               else if (ev.modifiers & Qt.ControlModifier) {
                 if (ev.key === Qt.Key_L) root.copy(e, "login")
@@ -189,7 +189,7 @@ ShellRoot {
               Text { visible: revealed; text: root.revealedText; color: root.green; font.family: root.font; font.pixelSize: 13; Layout.fillWidth: true; elide: Text.ElideRight }
             }
             Repeater {
-              model: [["󰌾", "password"], ["󰀄", "login"]].concat(entry.otpSecret ? [["󰦝", "otp"]] : []).concat([["󰈈", "reveal"]]).concat(entry.url ? [["󰖟", "open"]] : [])
+              model: [["󰌾", "password"], ["󰀄", "login"]].concat(entry.hasOtp ? [["󰦝", "otp"]] : []).concat([["󰈈", "reveal"]]).concat(entry.url ? [["󰖟", "open"]] : [])
               Rectangle { required property var modelData; width: 30; height: 30; radius: 7
                 color: h2.hovered ? root.accent : "transparent"
                 HoverHandler { id: h2 }
