@@ -13,7 +13,7 @@ everything *outside* the browser — SSH, terminals, desktop apps — as a thin,
 - Omarchy menu: `omarchy menu summon passwords` → entry → copy password / login / OTP
 - Themed from your current Omarchy theme; keyboard-first
 - Vault locks together with the screen (`dashlane-lock` wired into hypridle)
-- Bar widget (centre section): click for a mini popup — search, ⏎ copies the password, `^L` login, `^O` OTP — like the Spotify mini player; "Open app" / middle-click / `^⏎` opens the full window. `omarchy-shell shell toggle dashlane-omarchy.vault` for a keybind.
+- Bar widget (centre section): click for a mini popup — search, ⏎ copies the password, `^L` login, `^O` OTP — like the Spotify mini player; "Open app" / middle-click / `^⏎` opens the full window. `omarchy-shell shell toggle tobeytg.dashlane` for a keybind.
 
 ## Security model
 - **Auth and crypto are `dcli`'s.** The app never sees your master password: login/unlock happens in dcli's own terminal prompt. `install.sh` pins `dcli` to a release and verifies its sha256.
@@ -26,14 +26,13 @@ everything *outside* the browser — SSH, terminals, desktop apps — as a thin,
 Everything that touches the vault is ~60 lines of bash in `bin/`; `test/test.sh` proves the strip / argv / clipboard claims with a fake `dcli`.
 
 ## Install
-Requires Omarchy (Quickshell, `jq`, `wl-clipboard`, `gh`). Works on any Hyprland/Wayland box with Quickshell if you skip the Omarchy bits.
 ```sh
-git clone https://github.com/<you>/dashlane-omarchy && cd dashlane-omarchy
-./install.sh          # symlinks bin/ + .desktop, installs pinned dcli, wires hypridle lock (backup kept)
-dcli sync             # first login (email, master password, device code)
-dashlane-menu-sync    # generate the Omarchy menu
-dashlane-app          # or the "Dashlane" launcher entry, or: omarchy menu summon passwords
+omarchy plugin add https://github.com/TobeyTG/dashlane-omarchy --enable
 ```
+The 🔒 appears in the bar. Click it → **Finish setup** (installs the pinned `dcli`, the vault-lock hook, the menu, launcher entry and `~/.local/bin` symlinks — that's `install.sh`), then **Open app → Log in with dcli**.
+
+Manual alternative: `git clone … && ./install.sh`. Requires Omarchy (Quickshell, `jq`, `wl-clipboard`, `gh`).
+`omarchy plugin update` keeps it current.
 Optional keybinds for `~/.config/hypr/bindings.lua`:
 ```lua
 o.bind("SUPER + SHIFT + P", "Passwords", "dashlane-app")
@@ -66,7 +65,9 @@ bin/dashlane-copy      copy → clipboard (sensitive, 30 s clear)
 bin/dashlane-lock      dcli lock + screen lock (hypridle)
 bin/dashlane-menu-sync Omarchy menu generator
 bin/dashlane-sync      login terminal
-plugin/                Omarchy bar-widget plugin: BarWidget.qml (icon) + Panel.qml (mini popup)
+manifest.json          the repo root is the Omarchy plugin
+BarWidget.qml          bar icon
+Panel.qml              mini popup
 test/                  self-tests + fake dcli
 ```
 

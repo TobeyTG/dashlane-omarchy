@@ -8,14 +8,16 @@ import qs.Ui
 // "Open app" launches the full window. Metadata only (dashlane-list); copies via dashlane-copy.
 Panel {
   id: root
-  moduleName: "dashlane-omarchy.vault"
-  ipcTarget: "dashlane-omarchy.vault"
+  moduleName: "tobeytg.dashlane"
+  ipcTarget: "tobeytg.dashlane"
   manageIpc: false
 
   property var anchorItem: null
   property var hostWidget: null
   readonly property var barIdentity: hostWidget || root
-  readonly property string binDir: Quickshell.env("HOME") + "/.local/bin/"
+  // Scripts live next to this file (the repo root is the plugin), so no PATH setup is needed.
+  readonly property string pluginDir: Qt.resolvedUrl(".").toString().replace(/^file:\/\//, "")
+  readonly property string binDir: pluginDir + "bin/"
   readonly property color fg: bar ? bar.foreground : Color.foreground
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
@@ -52,6 +54,9 @@ Panel {
     copier.field = field; copier.command = [binDir + "dashlane-copy", e.id, field]; copier.running = true; showToast("Copying…")
   }
   function openApp() { close(); if (bar) bar.run(binDir + "dashlane-app") }
+  function finishSetup() { close(); if (bar) bar.run("omarchy-launch-floating-terminal-with-presentation " + pluginDir + "install.sh") }
+  readonly property bool setupDone: dcliCheck.exitCode === 0
+  Process { id: dcliCheck; property int exitCode: 0; command: ["sh", "-c", "command -v dcli"]; running: true; onExited: function (c) { exitCode = c } }
   function showToast(m) { toast = m; toastTimer.restart() }
 
   Process { id: loader; command: [root.binDir + "dashlane-list"]
@@ -62,7 +67,7 @@ Panel {
   Timer { id: toastTimer; interval: 1500; onTriggered: root.toast = "" }
   Timer { id: closeTimer; interval: 600; onTriggered: root.close() }
 
-  IpcHandler { target: "dashlane-omarchy.vault"
+  IpcHandler { target: "tobeytg.dashlane"
     function open(): void { root.open() }
     function close(): void { root.close() }
     function show(): void { root.open() }
@@ -107,7 +112,8 @@ Panel {
       }
 
       Text { visible: root.locked; width: parent.width; wrapMode: Text.Wrap; color: Qt.darker(root.fg, 1.4); font.family: root.fontFamily; font.pixelSize: Style.font.caption
-        text: "Open the app to log in with the official Dashlane CLI." }
+        text: root.setupDone ? "Open the app to log in with the official Dashlane CLI." : "First run: installs the official Dashlane CLI (pinned), the vault-lock hook and the menu." }
+      Button { visible: root.locked && !root.setupDone; text: "Finish setup"; onClicked: root.finishSetup() }
 
       Repeater {
         model: root.filtered

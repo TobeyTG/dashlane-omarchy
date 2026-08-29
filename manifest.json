@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "tobeytg.dashlane",
+  "name": "Dashlane",
+  "version": "1.0.0",
+  "author": "TobeyTG",
+  "license": "MIT",
+  "description": "Dashlane vault for Omarchy: bar popup, full app, menu \u2014 on the official dcli",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Dashlane",
+    "description": "Opens the Dashlane vault app",
+    "category": "Apps",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}

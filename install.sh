@@ -7,10 +7,12 @@ DCLI_SHA256=55d9eae31e983081441e7b27ee287fda93989a7bff617bbab9a70aa61b326acc
 mkdir -p ~/.local/bin
 for f in "$here"/bin/*; do ln -sf "$f" ~/.local/bin/; done
 mkdir -p ~/.local/share/applications && ln -sf "$here/dashlane-omarchy.desktop" ~/.local/share/applications/
-# Bar widget plugin → centre section of the Omarchy bar
-mkdir -p ~/.config/omarchy/plugins && ln -sfn "$here/plugin" ~/.config/omarchy/plugins/dashlane-omarchy
+# Bar widget plugin: this repo IS the plugin. Skip when already installed via `omarchy plugin add`.
+mkdir -p ~/.config/omarchy/plugins; rm -f ~/.config/omarchy/plugins/dashlane-omarchy
+[[ $here == "$HOME/.config/omarchy/plugins/"* ]] || ln -sfn "$here" ~/.config/omarchy/plugins/tobeytg.dashlane
 omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
-grep -q '"dashlane-omarchy.vault"' ~/.config/omarchy/shell.json 2>/dev/null || omarchy bar put dashlane-omarchy.vault --section center >/dev/null 2>&1 || true
+sed -i 's/"dashlane-omarchy.vault"/"tobeytg.dashlane"/' ~/.config/omarchy/shell.json 2>/dev/null || true
+grep -q '"tobeytg.dashlane"' ~/.config/omarchy/shell.json 2>/dev/null || omarchy bar put tobeytg.dashlane --section center >/dev/null 2>&1 || true
 # Official dcli, pinned to a release + sha256 (see DCLI_VERSION / DCLI_SHA256 at the top of this file).
 if ! command -v dcli >/dev/null || [[ "$(dcli --version)" != "$DCLI_VERSION" ]]; then
   echo "installing dcli $DCLI_VERSION (official Dashlane CLI) to ~/.local/bin"

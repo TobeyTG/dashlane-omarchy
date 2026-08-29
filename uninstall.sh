@@ -3,9 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 for f in bin/*; do rm -f ~/.local/bin/"$(basename "$f")"; done
-rm -f ~/.local/share/applications/dashlane-omarchy.desktop ~/.config/omarchy/plugins/dashlane-omarchy
+rm -f ~/.local/share/applications/dashlane-omarchy.desktop ~/.config/omarchy/plugins/tobeytg.dashlane
 shell=~/.config/omarchy/shell.json
-[[ -f $shell ]] && jq 'walk(if type=="array" then map(select(.id? != "dashlane-omarchy.vault")) else . end)' "$shell" > "$shell.tmp" && mv "$shell.tmp" "$shell"
+[[ -f $shell ]] && jq 'walk(if type=="array" then map(select(.id? != "tobeytg.dashlane")) else . end)' "$shell" > "$shell.tmp" && mv "$shell.tmp" "$shell"
 omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
 idle=~/.config/hypr/hypridle.conf
 [[ -f $idle ]] && sed -i 's/dashlane-lock/omarchy-system-lock/g' "$idle" && omarchy restart hypridle >/dev/null 2>&1 || true

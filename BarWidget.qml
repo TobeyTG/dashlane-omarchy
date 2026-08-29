@@ -5,7 +5,7 @@ import qs.Ui
 // Bar button: left-click toggles the mini vault popup, middle-click opens the full app.
 BarWidget {
   id: root
-  moduleName: "dashlane-omarchy.vault"
+  moduleName: "tobeytg.dashlane"
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
