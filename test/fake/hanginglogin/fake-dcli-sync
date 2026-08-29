@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# fake-dcli-sync: pretend to be `dcli sync` waiting for the user forever
+sleep 600

@@ -23,9 +23,11 @@ if ! secret=$(get); then
     notify-send -a Dashlane "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal" 2>/dev/null || true
     omarchy-launch-floating-terminal-with-presentation "dcli sync" || true
     # The launcher detaches, so wait for a `dcli sync` process to appear and finish — bounded.
+    # Login needs email + master password + a device code that Dashlane e-mails; slow mail is
+    # common, hence 5 minutes. DASHLANE_LOGIN_TIMEOUT (seconds) overrides it (tests use 2).
     login_running() { pgrep -x dcli -a 2>/dev/null | grep -qE '(^|[[:space:]])dcli[[:space:]]+sync([[:space:]]|$)'; }
     for _ in $(seq 1 20); do login_running && break; sleep 0.5; done
-    for _ in $(seq 1 180); do login_running || break; sleep 1; done    # ≤3 min for the user to log in
+    for _ in $(seq 1 "${DASHLANE_LOGIN_TIMEOUT:-300}"); do login_running || break; sleep 1; done
     secret=$(get) || { notify "Dashlane" "Login did not complete — vault still locked"; exit 1; }
   else
     notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1
@@ -35,6 +37,10 @@ fi
 # --sensitive (wl-clipboard ≥ 2.2.2) keeps the value out of Omarchy's clipboard history; older
 # versions lack the flag, so feature-detect it. setsid: the server must survive the caller exiting.
 sensitive=(); wl-copy --help 2>&1 | grep -q -- --sensitive && sensitive=(--sensitive)
+if [[ -z ${sensitive[*]} ]]; then   # warn once per session: the value will land in clipboard history
+  mark=${XDG_RUNTIME_DIR:-/tmp}/dashlane-copy.no-sensitive
+  [[ -e $mark ]] || { touch "$mark"; notify-send -a Dashlane -u normal "Dashlane" "wl-clipboard < 2.2.2: copied values are not hidden from clipboard history" 2>/dev/null || true; }
+fi
 printf '%s' "$secret" | tr -d '\n' | setsid wl-copy "${sensitive[@]}" -t text/plain
 notify "Dashlane" "Copied $field${label:+ for $label} (clears in 30s)"
 # fallback clear: after 30s, wipe the clipboard if it still holds this secret (compared via stdin, not argv)

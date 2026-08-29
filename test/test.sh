@@ -19,6 +19,15 @@ fresh=$(mktemp); printf '{\n}\n' > "$fresh"; DASHLANE_MENU_FILE=$fresh dashlane-
 perl -0pe 's/^\s*\/\/[^\n]*(\n|$)//gm; s/,(\s*[}\]])/$1/g' "$fresh" | jq . >/dev/null || { echo "FAIL: fresh menu does not parse like Omarchy"; exit 1; }; rm "$fresh"
 rm "$tmp"; echo "menu-sync ok"
 
+# malformed ids never reach a shell action string
+bad=$(mktemp); jq '. + [{"id":"x; rm -rf ~","title":"Evil","url":"https://evil.example","password":"p"}]' test/vault.json > "$bad"
+tmp2=$(mktemp); printf '{\n}\n' > "$tmp2"
+DASHLANE_MENU_FILE=$tmp2 dashlane-menu-sync "$bad" 2>"$tmp2.err" >/dev/null
+grep -q "unexpected ids" "$tmp2.err" || { echo "FAIL: malformed id not reported"; exit 1; }
+grep -q "rm -rf" "$tmp2" && { echo "FAIL: malformed id reached the menu"; exit 1; }
+[[ $(grep -c '"passwords\.[0-9]*":' "$tmp2") == 3 ]] || { echo "FAIL: good entries dropped with the bad one"; exit 1; }
+rm -f "$bad" "$tmp2" "$tmp2.err"; echo "malformed ids filtered ok"
+
 # locked vault: every entry point must fail cleanly, never hang, never fall through
 DCLI_LOCKED=1 timeout 5 dashlane-list >/dev/null 2>&1 && { echo "FAIL: list succeeded while locked"; exit 1; }
 DCLI_LOCKED=1 timeout 5 dashlane-field aaa password >/dev/null 2>&1 && { echo "FAIL: field succeeded while locked"; exit 1; }
@@ -41,6 +50,12 @@ if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
   (( SECONDS - start < 30 )) || { echo "FAIL: locked copy took too long"; exit 1; }
   [[ -z "$(wl-paste -n 2>/dev/null || true)" ]] || { echo "FAIL: locked copy touched the clipboard"; exit 1; }
   echo "locked copy fails fast, clipboard untouched"
+  # login window opened but never completes: give up at DASHLANE_LOGIN_TIMEOUT, not later
+  start=$SECONDS
+  PATH="$PWD/test/fake/hanginglogin:$PATH" DASHLANE_LOGIN_TIMEOUT=2 DCLI_LOCKED=1 timeout 60 dashlane-copy --quiet aaa password >/dev/null 2>&1 && { echo "FAIL: hanging login copy succeeded"; exit 1; }
+  (( SECONDS - start < 20 )) || { echo "FAIL: hanging login not bounded ($((SECONDS-start))s)"; exit 1; }
+  pgrep -x dcli -a 2>/dev/null | awk '/ sync$/{print $1}' | xargs -r kill 2>/dev/null || true   # stop the fake login
+  echo "hanging login bounded by DASHLANE_LOGIN_TIMEOUT"
   dashlane-copy aaa password >/dev/null 2>&1 &
   sleep 0.5
   anc=""; a=$$; while [[ $a -gt 1 ]]; do anc+="$a "; a=$(awk '{print $4}' "/proc/$a/stat"); done   # skip our own shell ancestry

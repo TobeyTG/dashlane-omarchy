@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Test stand-in: "opens" a login that never finishes — a process named dcli with args "sync".
+d=$(mktemp -d); cp "$(dirname "$0")/fake-dcli-sync" "$d/dcli"; setsid "$d/dcli" sync >/dev/null 2>&1 < /dev/null &
