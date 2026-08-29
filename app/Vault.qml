@@ -43,7 +43,8 @@ Singleton {
   // poll dcli every 3s while locked until the vault opens.
   Process { id: login; command: ["omarchy-launch-floating-terminal-with-presentation", "dcli sync"]; onStarted: root.loggingIn = true }
   function startLogin() { login.running = true }
-  Timer { running: root.locked && root.loggingIn; interval: 3000; repeat: true; onTriggered: root.reload() }
+  // probe: re-run the loader without touching locked/status, so the locked view doesn't flicker
+  Timer { running: root.locked && root.loggingIn; interval: 3000; repeat: true; onTriggered: { loader.running = false; loader.running = true } }
 
   // ---- selection / sidebar ----
   property var selected: null
@@ -108,6 +109,7 @@ Singleton {
     onExited: function (code) { root.toast(code === 0 ? "Copied " + copier.what + " · " + root.host(copier.entry) : "Copy failed — vault locked?") } }
   function copy(entry, field) {
     if (!entry) return
+    if (copier.running) { root.toast("Still copying…"); return }
     if (field === "login" && !entry.login && entry.email) field = "email"   // skip dcli's failing login lookup
     copier.what = field; copier.entry = entry
     if (field === "password" && root.cachedPassword && root.cachedId === entry.id) {   // prefetched → instant, via stdin
