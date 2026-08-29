@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# dashlane-copy <id> [password|login|email|otp] — copy one field to clipboard
+# dashlane-copy <id> [password|login|email|otp] — copy one field to clipboard.
+# If the vault is locked, opens a terminal with the official CLI login (dcli sync) and retries.
 set -euo pipefail
 id=$1; field=${2:-password}
-if dcli p "id=$id" -f "$field" -o clipboard 2>/dev/null; then
-  notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field" 2>/dev/null || true
-else
-  notify-send -a Dashlane -u critical "Dashlane" "Vault locked — run: dcli sync" 2>/dev/null || true
-  exit 1
+if ! dcli p "id=$id" -f "$field" -o clipboard 2>/dev/null; then
+  notify-send -a Dashlane "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal" 2>/dev/null || true
+  omarchy-launch-floating-terminal-with-presentation "dcli sync" || true
+  sleep 2; while pgrep -f "dcli sync" >/dev/null; do sleep 1; done   # launcher detaches; wait for the login to finish
+  dcli p "id=$id" -f "$field" -o clipboard
 fi
+notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field" 2>/dev/null || true

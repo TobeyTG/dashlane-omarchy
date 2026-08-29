@@ -10,6 +10,7 @@ ShellRoot {
   property var entries: []
   property string status: "Loading vault…"
   property string toast: ""
+  property bool locked: false
 
   // --- theme: ~/.local/state/omarchy/current/theme/colors.toml ---
   property var theme: ({})
@@ -40,8 +41,17 @@ ShellRoot {
     command: Quickshell.env("DASHLANE_JSON") ? ["cat", Quickshell.env("DASHLANE_JSON")] : ["dcli", "p", "-o", "json"]
     running: true
     stdout: StdioCollector { onStreamFinished: root.parse(text) }
-    onExited: function (code) { if (code !== 0) root.status = "Vault locked or dcli failed — run `dcli sync` in a terminal, then press R" }
+    onExited: function (code) { root.locked = code !== 0; if (code === 0) root.loggingIn = false; else root.status = "" }
   }
+  // Opens a floating terminal running the official Dashlane CLI login. The launcher detaches,
+  // so we can't wait on it — instead poll dcli every 3s while locked until the vault opens.
+  property bool loggingIn: false
+  Process {
+    id: login
+    command: ["omarchy-launch-floating-terminal-with-presentation", "dcli sync"]
+    onStarted: root.loggingIn = true
+  }
+  Timer { running: root.locked && root.loggingIn; interval: 3000; repeat: true; onTriggered: { loader.running = false; loader.running = true } }
   function parse(t) {
     try {
       var arr = JSON.parse(t)
@@ -49,7 +59,7 @@ ShellRoot {
       root.entries = arr; root.status = ""
     } catch (e) { root.status = "Could not parse vault output" }
   }
-  function reload() { root.status = "Loading vault…"; loader.running = false; loader.running = true }
+  function reload() { root.status = "Loading vault…"; root.locked = false; loader.running = false; loader.running = true }
 
   Process { id: copier; property string what
     stdout: StdioCollector {}
@@ -97,7 +107,7 @@ ShellRoot {
               if (ev.key === Qt.Key_Down) { list.incrementCurrentIndex(); ev.accepted = true }
               else if (ev.key === Qt.Key_Up) { list.decrementCurrentIndex(); ev.accepted = true }
               else if (ev.key === Qt.Key_Escape) Qt.quit()
-              else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) root.copy(e, "password")
+              else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) { if (root.locked) login.running = true; else root.copy(e, "password") }
               else if (ev.modifiers & Qt.ControlModifier) {
                 if (ev.key === Qt.Key_L) root.copy(e, "login")
                 else if (ev.key === Qt.Key_O) root.copy(e, "otp")
@@ -111,12 +121,28 @@ ShellRoot {
         }
       }
 
+      // locked / not logged in
+      Rectangle {
+        visible: root.locked; Layout.fillWidth: true; Layout.fillHeight: true; radius: 12; color: root.bg2
+        ColumnLayout { anchors.centerIn: parent; width: Math.min(parent.width - 48, 460); spacing: 14
+          Text { text: "󰌾"; color: root.accent; font.family: root.font; font.pixelSize: 40; Layout.alignment: Qt.AlignHCenter }
+          Text { text: "Vault locked"; color: root.fg; font.family: root.font; font.pixelSize: 18; font.bold: true; Layout.alignment: Qt.AlignHCenter }
+          Text { Layout.fillWidth: true; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; color: root.fg2; font.family: root.font; font.pixelSize: 12
+            text: "Log in opens a terminal running the official Dashlane CLI (dcli sync). You enter your email, master password and device code there — this app never sees or stores them." }
+          Rectangle { Layout.alignment: Qt.AlignHCenter; width: 180; height: 40; radius: 10; color: lh.hovered ? Qt.lighter(root.accent, 1.1) : root.accent
+            HoverHandler { id: lh }
+            TapHandler { onTapped: login.running = true }
+            Text { anchors.centerIn: parent; text: root.loggingIn ? "Waiting for login…" : "Log in with dcli"; color: root.bg; font.family: root.font; font.pixelSize: 13; font.bold: true } }
+        }
+      }
+
       // status
       Text { visible: root.status !== ""; text: root.status; color: root.fg2; font.family: root.font; font.pixelSize: 13; Layout.fillWidth: true; wrapMode: Text.Wrap }
 
       // list
       ListView {
         id: list
+        visible: !root.locked
         Layout.fillWidth: true; Layout.fillHeight: true
         model: root.filtered; clip: true; spacing: 4
         highlightMoveDuration: 80
