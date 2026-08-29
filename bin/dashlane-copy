@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # dashlane-copy <id> [password|login|email|otp] [label] — copy one field to the clipboard.
+# dashlane-copy --stdin <field> [label]              — copy a value the caller already fetched (read from stdin).
 # One dcli call on the happy path (dcli costs ~0.6s per invocation). Security: the secret only
 # ever travels through pipes (never argv, never disk). --sensitive keeps it out of clipboard
 # history (Omarchy honours the hint); cleared after 30s. If the vault is locked, opens a terminal
 # with the official CLI login (dcli sync) and retries.
 set -euo pipefail
+if [[ $1 == --stdin ]]; then
+  field=$2; label=${3:-}; secret=$(cat)
+  [[ -n $secret ]] || exit 1
+else
 id=$1; field=${2:-password}; label=${3:-}
 get() {  # login falls back to email (dcli errors if the entry has only one of them)
   local f; for f in "$field" $([[ $field == login ]] && echo email); do
@@ -20,7 +25,8 @@ if ! secret=$(get); then
     notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1
   fi
 fi
-printf '%s' "$secret" | tr -d '\n' | wl-copy --sensitive -t text/plain
+fi
+printf '%s' "$secret" | tr -d '\n' | setsid wl-copy --sensitive -t text/plain   # setsid: survive the caller (app) exiting
 notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field${label:+ for $label} (clears in 30s)" 2>/dev/null || true
 # fallback clear: after 30s, wipe the clipboard if it still holds this secret (compared via stdin, not argv)
 # shellcheck disable=SC2016  # $s is expanded by the inner bash on purpose

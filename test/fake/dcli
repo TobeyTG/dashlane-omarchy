@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # minimal dcli stand-in for tests: serves test/vault.json
 v="$(dirname "$0")/../vault.json"
+[[ -n ${DCLI_LOG:-} ]] && echo "$*" >> "$DCLI_LOG"
 id=""; field=password; out=json
 for a in "$@"; do case $a in id=*) id=${a#id=};; console|json|clipboard) out=$a;; password|login|email|otp) field=$a;; esac; done
 q='.'; [[ -n $id ]] && q="map(select(.id==\"$id\"))"
