@@ -3,8 +3,17 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      CI: "1"
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install -y -q shellcheck jq
+      - run: sudo apt-get install -y -q shellcheck jq wl-clipboard sway libnotify-bin
       - run: shellcheck -x bin/* install.sh uninstall.sh test/test.sh test/fake/dcli
-      - run: test/test.sh   # clipboard assertions are skipped without a Wayland session
+      # Headless sway gives wl-copy/wl-paste a real Wayland seat, so the clipboard and
+      # secret-in-argv assertions run here instead of being skipped.
+      - run: |
+          export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p -m 700 $XDG_RUNTIME_DIR
+          WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 sway -c /dev/null >/tmp/sway.log 2>&1 &
+          for i in $(seq 1 50); do [ -e $XDG_RUNTIME_DIR/wayland-1 ] && break; sleep 0.2; done
+          export WAYLAND_DISPLAY=wayland-1
+          test/test.sh
