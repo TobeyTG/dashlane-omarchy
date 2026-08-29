@@ -12,8 +12,18 @@ grep -q '"personal"' "$tmp"                                   # existing entries
 [[ $(grep -c '"passwords\.[0-9]*":' "$tmp") == 3 ]]
 [[ $(grep -c 'Copy OTP' "$tmp") == 1 ]]                       # only GitHub has otp
 if grep -qE '"(aaa|bbb|ccc)"|x-secret|JBSWY3DP' "$tmp"; then echo "FAIL: secret in menu"; exit 1; fi
-grep -v "^\s*//" "$tmp" | perl -0pe 's/,(\s*\})/$1/g' | jq . >/dev/null   # valid JSON once comments stripped
+# Parse exactly like Omarchy does (MenuModel.js stripJsonc: drop // lines, drop trailing commas)
+perl -0pe 's/^\s*\/\/[^\n]*(\n|$)//gm; s/,(\s*[}\]])/$1/g' "$tmp" | jq . >/dev/null
+# ...both when user entries follow the block (above) and on a fresh file where "}" follows it directly
+fresh=$(mktemp); printf '{\n}\n' > "$fresh"; DASHLANE_MENU_FILE=$fresh dashlane-menu-sync test/vault.json >/dev/null
+perl -0pe 's/^\s*\/\/[^\n]*(\n|$)//gm; s/,(\s*[}\]])/$1/g' "$fresh" | jq . >/dev/null || { echo "FAIL: fresh menu does not parse like Omarchy"; exit 1; }; rm "$fresh"
 rm "$tmp"; echo "menu-sync ok"
+
+# locked vault: every entry point must fail cleanly, never hang, never fall through
+DCLI_LOCKED=1 timeout 5 dashlane-list >/dev/null 2>&1 && { echo "FAIL: list succeeded while locked"; exit 1; }
+DCLI_LOCKED=1 timeout 5 dashlane-field aaa password >/dev/null 2>&1 && { echo "FAIL: field succeeded while locked"; exit 1; }
+DCLI_LOCKED=1 timeout 5 dashlane-menu-sync >/dev/null 2>&1 && { echo "FAIL: menu-sync succeeded while locked"; exit 1; }
+echo "locked-vault paths fail cleanly"
 
 # dashlane-list (via fake dcli) must not expose password/otpSecret
 out=$(dashlane-list)
@@ -22,7 +32,15 @@ if grep -qE 'password|otpSecret|JBSWY3DP' <<<"$out"; then echo "FAIL: secret in 
 echo "list strips secrets ok"
 
 # dashlane-copy: secret reaches the clipboard, never appears in any process argv
+if [[ -z ${WAYLAND_DISPLAY:-} && -n ${CI:-} ]]; then echo "FAIL: CI has no Wayland display — clipboard/argv tests would be skipped"; exit 1; fi
+[[ -n ${WAYLAND_DISPLAY:-} ]] || echo "SKIPPED clipboard/argv tests (no WAYLAND_DISPLAY)"
 if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
+  # locked: copy must give up within the deadline, with a clear message, and leave the clipboard alone
+  wl-copy --clear; start=$SECONDS
+  PATH="$PWD/test/fake/nolauncher:$PATH" DCLI_LOCKED=1 timeout 60 dashlane-copy --quiet aaa password >/dev/null 2>&1 && { echo "FAIL: locked copy succeeded"; exit 1; }
+  (( SECONDS - start < 30 )) || { echo "FAIL: locked copy took too long"; exit 1; }
+  [[ -z "$(wl-paste -n 2>/dev/null || true)" ]] || { echo "FAIL: locked copy touched the clipboard"; exit 1; }
+  echo "locked copy fails fast, clipboard untouched"
   dashlane-copy aaa password >/dev/null 2>&1 &
   sleep 0.5
   anc=""; a=$$; while [[ $a -gt 1 ]]; do anc+="$a "; a=$(awk '{print $4}' "/proc/$a/stat"); done   # skip our own shell ancestry
