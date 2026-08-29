@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "dashlane-omarchy.vault",
+  "name": "Dashlane",
+  "version": "1.0.0",
+  "author": "dashlane-omarchy",
+  "license": "MIT",
+  "description": "Bar button that opens the Dashlane vault app",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "Dashlane",
+    "description": "Opens the Dashlane vault app",
+    "category": "Apps",
+    "allowMultiple": false
+  }
+}

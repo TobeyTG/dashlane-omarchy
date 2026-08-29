@@ -13,6 +13,7 @@ everything *outside* the browser — SSH, terminals, desktop apps — as a thin,
 - Omarchy menu: `omarchy menu summon passwords` → entry → copy password / login / OTP
 - Themed from your current Omarchy theme; keyboard-first
 - Vault locks together with the screen (`dashlane-lock` wired into hypridle)
+- Bar widget: a 󰌾 button in the Omarchy bar (centre section) that opens the app
 
 ## Security model
 - **Auth and crypto are `dcli`'s.** The app never sees your master password: login/unlock happens in dcli's own terminal prompt. `install.sh` pins `dcli` to a release and verifies its sha256.
@@ -64,6 +65,7 @@ bin/dashlane-copy      copy → clipboard (sensitive, 30 s clear)
 bin/dashlane-lock      dcli lock + screen lock (hypridle)
 bin/dashlane-menu-sync Omarchy menu generator
 bin/dashlane-sync      login terminal
+plugin/                Omarchy bar-widget plugin (manifest + BarWidget.qml)
 test/                  self-tests + fake dcli
 ```
 
