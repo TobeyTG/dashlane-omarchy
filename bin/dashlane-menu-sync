@@ -9,6 +9,9 @@ src=${1:-}
 strip='map({id,title,url,login,email,hasOtp:((.otpSecret // "") != "")})'
 if [[ -n $src ]]; then json=$(jq "$strip" "$src"); else json=$(dashlane-list); fi   # metadata only — secrets never enter this script
 
+# ids go into shell command strings: allow only the characters Dashlane actually uses
+bad=$(jq -r '.[].id' <<<"$json" | grep -vE '^[{}A-Za-z0-9_-]+$' || true)
+[[ -z $bad ]] || { echo "skipping entries with unexpected ids: $bad" >&2; json=$(jq 'map(select(.id|test("^[{}A-Za-z0-9_-]+$")))' <<<"$json"); }
 block=$(jq -r '
   sort_by(.title // .url // "" | ascii_downcase) | to_entries[] | .value as $c |
   ($c.title // $c.url // "untitled") as $label |
@@ -27,7 +30,7 @@ genf=$(mktemp)
   echo '  "passwords": {"icon":"󰌆","label":"Passwords","aliases":["dashlane","pw"]},'
   echo '  "passwords.sync": {"icon":"󰑐","label":"Sync vault","action":"dashlane-sync"},'
   echo '  "passwords.app": {"icon":"󰆍","label":"Open app","action":"dashlane-app"},'
-  echo "$block"
+  echo "$block"   # trailing comma stays: a user entry may follow; Omarchy's stripJsonc drops it before "}"
   echo "$end"
 } > "$genf"
 
