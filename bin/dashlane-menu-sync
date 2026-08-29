@@ -6,7 +6,7 @@ set -euo pipefail
 menu=${DASHLANE_MENU_FILE:-$HOME/.config/omarchy/extensions/omarchy-menu.jsonc}
 src=${1:-}
 
-json=$( [[ -n $src ]] && cat "$src" || dcli p -o json )
+json=$( [[ -n $src ]] && cat "$src" || dcli p -o json </dev/null )
 
 block=$(jq -r '
   sort_by(.title // .url // "" | ascii_downcase) | to_entries[] | .value as $c |

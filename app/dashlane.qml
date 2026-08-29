@@ -38,7 +38,8 @@ ShellRoot {
   // --- data ---
   Process {
     id: loader
-    command: Quickshell.env("DASHLANE_JSON") ? ["cat", Quickshell.env("DASHLANE_JSON")] : ["dcli", "p", "-o", "json"]
+    // stdin closed + timeout: without a tty dcli would otherwise sit forever on its password prompt
+    command: Quickshell.env("DASHLANE_JSON") ? ["cat", Quickshell.env("DASHLANE_JSON")] : ["sh", "-c", "timeout 20 dcli p -o json </dev/null"]
     running: true
     stdout: StdioCollector { onStreamFinished: root.parse(text) }
     onExited: function (code) { root.locked = code !== 0; if (code === 0) root.loggingIn = false; else root.status = "" }
@@ -67,7 +68,7 @@ ShellRoot {
   function copy(entry, field) {
     if (!entry) return
     copier.what = field
-    copier.command = ["dcli", "p", "id=" + entry.id, "-f", field, "-o", "clipboard"]
+    copier.command = ["sh", "-c", "timeout 20 dcli p id=" + entry.id + " -f " + field + " -o clipboard </dev/null"]
     copier.running = true
   }
   function showToast(m) { root.toast = m; toastTimer.restart() }

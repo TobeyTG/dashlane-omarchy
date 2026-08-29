@@ -8,7 +8,7 @@ if ! command -v dcli >/dev/null; then
   echo "installing dcli (official Dashlane CLI) to ~/.local/bin"
   gh release download -R Dashlane/dashlane-cli -p dcli-linux-x64 -O ~/.local/bin/dcli --clobber && chmod +x ~/.local/bin/dcli
 fi
-if dcli p -o json >/dev/null 2>&1; then
+if dcli p -o json </dev/null >/dev/null 2>&1; then
   dashlane-menu-sync
 else
   echo "vault not unlocked — run: dcli sync    then: dashlane-menu-sync"

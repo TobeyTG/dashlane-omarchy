@@ -3,7 +3,7 @@
 # If the vault is locked, opens a terminal with the official CLI login (dcli sync) and retries.
 set -euo pipefail
 id=$1; field=${2:-password}
-if ! dcli p "id=$id" -f "$field" -o clipboard 2>/dev/null; then
+if ! dcli p "id=$id" -f "$field" -o clipboard </dev/null 2>/dev/null; then
   notify-send -a Dashlane "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal" 2>/dev/null || true
   omarchy-launch-floating-terminal-with-presentation "dcli sync" || true
   sleep 2; while pgrep -f "dcli sync" >/dev/null; do sleep 1; done   # launcher detaches; wait for the login to finish
