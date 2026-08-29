@@ -87,6 +87,7 @@ Singleton {
     onExited: function (code) { root.toast(code === 0 ? "Copied " + copier.what + " for " + root.host(copier.entry) + " · clears in 30s" : "Copy failed — vault locked?") } }
   function copy(entry, field) {
     if (!entry) return
+    if (field === "login" && !entry.login && entry.email) field = "email"   // skip dcli's failing login lookup
     copier.what = field; copier.entry = entry; copier.command = ["dashlane-copy", entry.id, field, root.host(entry)]; copier.running = true
   }
   Process { id: opener }

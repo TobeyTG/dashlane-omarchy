@@ -42,6 +42,7 @@ Panel {
   function current() { return filtered[Math.max(0, Math.min(cursor, filtered.length - 1))] || null }
   function copy(field) {
     var e = current(); if (!e) return
+    if (field === "login" && !e.login && e.email) field = "email"
     copier.field = field; copier.command = [binDir + "dashlane-copy", e.id, field]; copier.running = true
   }
   function openApp() { close(); if (bar) bar.run(binDir + "dashlane-app") }
