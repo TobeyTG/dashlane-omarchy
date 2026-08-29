@@ -46,9 +46,10 @@ if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
   anc=""; a=$$; while [[ $a -gt 1 ]]; do anc+="$a "; a=$(awk '{print $4}' "/proc/$a/stat"); done   # skip our own shell ancestry
   leak=$(pgrep -f 'x-secret-aaa' | grep -vxF -e "${anc// /$'\n'}" || true)
   if [[ -n $leak ]]; then echo "FAIL: secret in argv of pid(s) $leak"; exit 1; fi
-  wait; [[ "$(wl-paste -n)" == "x-secret-aaa" ]] || { echo "FAIL: clipboard"; exit 1; }
+  wait; clip_is() { for _ in $(seq 1 20); do [[ "$(wl-paste -n 2>/dev/null)" == "$1" ]] && return; sleep 0.1; done; return 1; }   # wl-copy forks; give its server a moment
+  clip_is x-secret-aaa || { echo "FAIL: clipboard"; exit 1; }
   echo "copy ok (secret only in clipboard, not in argv)"
   printf 'x-secret-stdin' | dashlane-copy --quiet --stdin password >/dev/null 2>&1
-  [[ "$(wl-paste -n)" == "x-secret-stdin" ]] || { echo "FAIL: stdin copy"; exit 1; }
+  clip_is x-secret-stdin || { echo "FAIL: stdin copy"; exit 1; }
   echo "stdin copy ok"
 fi
