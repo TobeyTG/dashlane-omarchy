@@ -51,7 +51,7 @@ Panel {
   function copy(field) {
     var e = current(); if (!e) return
     if (field === "login" && !e.login && e.email) field = "email"
-    copier.field = field; copier.command = [binDir + "dashlane-copy", e.id, field]; copier.running = true; showToast("Copying…")
+    copier.field = field; copier.command = [binDir + "dashlane-copy", "--quiet", e.id, field]; copier.running = true; showToast("Copying…")
   }
   function openApp() { close(); if (bar) bar.run(binDir + "dashlane-app") }
   function finishSetup() { close(); if (bar) bar.run("omarchy-launch-floating-terminal-with-presentation " + pluginDir + "install.sh") }
@@ -64,7 +64,7 @@ Panel {
     onExited: function (code) { root.locked = code !== 0; if (code !== 0) root.entries = [] } }
   Process { id: copier; property string field; stdout: StdioCollector {}
     onExited: function (code) { if (code === 0) { root.showToast("Copied " + copier.field); closeTimer.restart() } else root.showToast("Copy failed") } }
-  Timer { id: toastTimer; interval: 1500; onTriggered: root.toast = "" }
+  Timer { id: toastTimer; interval: 1200; onTriggered: root.toast = "" }
   Timer { id: closeTimer; interval: 600; onTriggered: root.close() }
 
   IpcHandler { target: "tobeytg.dashlane"

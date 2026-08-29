@@ -7,7 +7,7 @@ import Quickshell
 ShellRoot {
   property string toast: ""
   Connections { target: Vault; function onToast(m) { toast = m; toastTimer.restart() } }
-  Timer { id: toastTimer; interval: 2500; onTriggered: toast = "" }
+  Timer { id: toastTimer; interval: 1200; onTriggered: toast = "" }
 
   FloatingWindow {
     title: "Dashlane"
@@ -35,12 +35,18 @@ ShellRoot {
               ev.accepted = true
               if (ev.key === Qt.Key_Down) list.incrementCurrentIndex()
               else if (ev.key === Qt.Key_Up) list.decrementCurrentIndex()
+              else if (ev.key === Qt.Key_PageDown) list.currentIndex = Math.min(list.currentIndex + 10, list.count - 1)
+              else if (ev.key === Qt.Key_PageUp) list.currentIndex = Math.max(list.currentIndex - 10, 0)
+              else if (ev.key === Qt.Key_End && ctrl) list.currentIndex = list.count - 1
+              else if (ev.key === Qt.Key_Home && ctrl) list.currentIndex = 0
               else if (ev.key === Qt.Key_Escape) { if (Vault.sidebarOpen) Vault.closeSidebar(); else Qt.quit() }
               else if (ev.key === Qt.Key_Right || ev.key === Qt.Key_Tab) Vault.select(e, true)
               else if (ev.key === Qt.Key_Left) Vault.closeSidebar()
               else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) { if (Vault.locked) Vault.startLogin(); else Vault.copy(e, "password") }
               else if (ctrl && ev.key === Qt.Key_L) Vault.copy(e, "login")
               else if (ctrl && ev.key === Qt.Key_O) Vault.copy(e, "otp")
+              else if (ctrl && ev.key === Qt.Key_E) Vault.copy(e, "email")
+              else if (ctrl && ev.key === Qt.Key_N) { Vault.select(e, true); Vault.toggleNote() }
               else if (ctrl && ev.key === Qt.Key_R) Vault.reload()
               else if (ctrl && ev.key === Qt.Key_S) Vault.reveal(e)
               else if (ctrl && ev.key === Qt.Key_U) Vault.openUrl(e)
@@ -68,7 +74,7 @@ ShellRoot {
 
       // footer
       RowLayout { Layout.fillWidth: true
-        Text { text: "⏎ password   ^L login   ^O otp   → details   ^S reveal   ^U open   ^R reload   esc"; color: Theme.fg2; font.family: Theme.font; font.pixelSize: 11 }
+        Text { text: "⏎ password  ^L login  ^E email  ^O otp  → details  ^S reveal  ^N note  ^U open  ^R reload  esc"; color: Theme.fg2; font.family: Theme.font; font.pixelSize: 11 }
         Item { Layout.fillWidth: true }
         Text { text: toast; color: Theme.green; font.family: Theme.font; font.pixelSize: 12; font.bold: true }
       }

@@ -30,7 +30,7 @@ if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
   if [[ -n $leak ]]; then echo "FAIL: secret in argv of pid(s) $leak"; exit 1; fi
   wait; [[ "$(wl-paste -n)" == "x-secret-aaa" ]] || { echo "FAIL: clipboard"; exit 1; }
   echo "copy ok (secret only in clipboard, not in argv)"
-  printf 'x-secret-stdin' | dashlane-copy --stdin password >/dev/null 2>&1
+  printf 'x-secret-stdin' | dashlane-copy --quiet --stdin password >/dev/null 2>&1
   [[ "$(wl-paste -n)" == "x-secret-stdin" ]] || { echo "FAIL: stdin copy"; exit 1; }
   echo "stdin copy ok"
 fi

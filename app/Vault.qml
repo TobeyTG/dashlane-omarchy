@@ -105,15 +105,15 @@ Singleton {
   Process { id: copier; property string what; property var entry: ({}); property string pendingStdin: ""
     stdout: StdioCollector {}
     onStarted: if (pendingStdin) { write(pendingStdin); pendingStdin = ""; stdinEnabled = false }   // the process must be running before write()
-    onExited: function (code) { root.toast(code === 0 ? "Copied " + copier.what + " for " + root.host(copier.entry) + " · clears in 30s" : "Copy failed — vault locked?") } }
+    onExited: function (code) { root.toast(code === 0 ? "Copied " + copier.what + " · " + root.host(copier.entry) : "Copy failed — vault locked?") } }
   function copy(entry, field) {
     if (!entry) return
     if (field === "login" && !entry.login && entry.email) field = "email"   // skip dcli's failing login lookup
     copier.what = field; copier.entry = entry
     if (field === "password" && root.cachedPassword && root.cachedId === entry.id) {   // prefetched → instant, via stdin
-      copier.command = ["dashlane-copy", "--stdin", field, root.host(entry)]; copier.pendingStdin = root.cachedPassword
+      copier.command = ["dashlane-copy", "--quiet", "--stdin", field, root.host(entry)]; copier.pendingStdin = root.cachedPassword
       copier.stdinEnabled = true; copier.running = true
-    } else { copier.command = ["dashlane-copy", entry.id, field, root.host(entry)]; copier.running = true; root.toast("Copying " + field + "…") }
+    } else { copier.command = ["dashlane-copy", "--quiet", entry.id, field, root.host(entry)]; copier.running = true; root.toast("Copying " + field + "…") }
   }
   Process { id: opener }
   function openUrl(entry) {

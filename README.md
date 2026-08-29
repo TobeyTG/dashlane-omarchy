@@ -44,9 +44,10 @@ o.bind("SUPER + ALT + P",   "Passwords menu", "omarchy-menu summon passwords")
 | Key | Action |
 |---|---|
 | `⏎` | copy password |
-| `^L` / `^O` | copy login (falls back to email) / one-time code |
+| `^L` / `^E` / `^O` | copy login / email / one-time code |
+| `PgUp` `PgDn` `^Home` `^End` | jump in the list |
 | `→` `Tab` / `←` `Esc` | open / close details |
-| `^S` | reveal password (10 s) |
+| `^S` / `^N` | reveal password (10 s) / show note |
 | `^U` | open website |
 | `^R` | reload vault |
 | `Esc` | close details, then quit |
