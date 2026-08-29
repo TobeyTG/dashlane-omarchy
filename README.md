@@ -1,81 +1,96 @@
-# dashlane-omarchy
+<div align="center" width="150px">
+  <img style="width: 150px; height: auto;" src="https://raw.githubusercontent.com/TobeyTG/dashlane-omarchy/master/assets/logo.svg" alt="Logo - Dashlane for Omarchy" />
+</div>
+<div align="center">
+  <h1>Dashlane for Omarchy</h1>
+  <p>Your Dashlane vault in the Omarchy bar, menu and a native app — on the official CLI</p>
+  <a href="https://github.com/TobeyTG/dashlane-omarchy/releases">
+    <img alt="GitHub release" src="https://img.shields.io/github/v/release/tobeytg/dashlane-omarchy?include_prereleases&label=release&logo=github">
+  </a>
+  <a href="https://github.com/TobeyTG/dashlane-omarchy/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/TobeyTG/dashlane-omarchy/actions/workflows/ci.yml/badge.svg">
+  </a>
+  <a href="LICENSE">
+    <img alt="License" src="https://img.shields.io/github/license/tobeytg/dashlane-omarchy">
+  </a>
+</div>
 
-A native Dashlane vault browser for Linux ([Omarchy](https://omarchy.org) / Hyprland), plus an Omarchy menu plugin.
-Dashlane dropped its desktop apps in 2022; on Linux you get the browser extension and nothing else. This fills the gap for
-everything *outside* the browser — SSH, terminals, desktop apps — as a thin, auditable layer over the official
-[`dcli`](https://github.com/Dashlane/dashlane-cli). No reverse engineering, no custom crypto.
+---
+
+A plugin for [Omarchy](https://omarchy.org) that brings [Dashlane](https://www.dashlane.com/) to Linux outside the browser: a 🔒 in the bar with a quick-copy popup, a native vault app with a details sidebar, and a "Passwords" submenu in the Omarchy menu.
+
+Everything runs on the official [`dcli`](https://github.com/Dashlane/dashlane-cli). No reverse engineering, no custom crypto, and your master password never touches this code.
 
 ![screenshot](docs/screenshot.png)
 
-## Features
-- Fuzzy search over your vault; ⏎ copies the password, `^L` login, `^O` one-time code
-- Details sidebar like the extension: website, login/email, masked password with reveal, live OTP with countdown, note, category, modified/last used, strength
-- Omarchy menu: `omarchy menu summon passwords` → entry → copy password / login / OTP
-- Themed from your current Omarchy theme; keyboard-first
-- Vault locks together with the screen (`dashlane-lock` wired into hypridle)
-- Bar widget (centre section): click for a mini popup — search, ⏎ copies the password, `^L` login, `^O` OTP — like the Spotify mini player; "Open app" / middle-click / `^⏎` opens the full window. `omarchy-shell shell toggle tobeytg.dashlane` for a keybind.
+## Installation
 
-## Security model
-- **Auth and crypto are `dcli`'s.** The app never sees your master password: login/unlock happens in dcli's own terminal prompt. `install.sh` pins `dcli` to a release and verifies its sha256.
-- **Secrets never enter the UI process wholesale.** `dashlane-list` strips `password`/`otpSecret` with `jq`; one field is fetched on demand via `dashlane-field`, travels through pipes only (never argv, never disk), and is wiped on entry change, sidebar close, quit, or after 10 s.
-- **Prefetch, narrowly:** when an entry is open in the sidebar, *that entry's* password is fetched once in the background so reveal/copy are instant. It is held only while the entry stays selected, never shown until you reveal it, and wiped on entry change, sidebar close, quit, or lock. Nothing else is prefetched; the bar popup never prefetches.
-- **Clipboard:** `wl-copy --sensitive` (Omarchy's clipboard history skips it), cleared after 30 s.
-- **Lock:** `dashlane-lock` runs `dcli lock`, closes the app, then locks the screen. Installed as hypridle `lock_cmd` / `before_sleep_cmd`, so the vault re-asks for the master password after every lock or sleep.
-- **Out of scope:** in-browser autofill and domain matching (keep the extension for that); memory hardening inside `dcli` (it's Node); password history (not exported by `dcli`).
-
-Everything that touches the vault is ~60 lines of bash in `bin/`; `test/test.sh` proves the strip / argv / clipboard claims with a fake `dcli`.
-
-## Install
-```sh
+```bash
 omarchy plugin add https://github.com/TobeyTG/dashlane-omarchy --enable
 ```
-The 🔒 appears in the bar. Click it → **Finish setup** (installs the pinned `dcli`, the vault-lock hook, the menu, launcher entry and `~/.local/bin` symlinks — that's `install.sh`), then **Open app → Log in with dcli**.
 
-Manual alternative: `git clone … && ./install.sh`. Requires Omarchy (Quickshell, `jq`, `wl-clipboard`, `gh`).
-`omarchy plugin update` keeps it current.
-Optional keybinds for `~/.config/hypr/bindings.lua`:
-```lua
-o.bind("SUPER + SHIFT + P", "Passwords", "dashlane-app")
-o.bind("SUPER + ALT + P",   "Passwords menu", "omarchy-menu summon passwords")
-```
-`./uninstall.sh` reverts everything except `dcli` and its vault.
+Click the 🔒 in the bar → **Finish setup** → **Open app** → **Log in with dcli**. That's it.
+
+☝️ *Finish setup* runs `install.sh`: it downloads the pinned `dcli` release (sha256-checked), wires the vault lock into hypridle, generates the menu and adds the launcher entry. You can also run it yourself after `git clone`.
+
+☝️ Login happens in a terminal running the official `dcli sync` — email, master password, device code. This plugin only ever calls `dcli`, it never sees those.
 
 ## Usage
+
+**Bar popup** — click the 🔒 (or bind `omarchy-shell shell toggle tobeytg.dashlane`): type, `⏎` copies the password, `^L` login, `^O` one-time code, `^⏎` opens the app.
+
+**App** — `dashlane-app`, the "Dashlane" launcher entry, or middle-click the 🔒:
+
 | Key | Action |
 |---|---|
 | `⏎` | copy password |
 | `^L` / `^E` / `^O` | copy login / email / one-time code |
-| `PgUp` `PgDn` `^Home` `^End` | jump in the list |
 | `→` `Tab` / `←` `Esc` | open / close details |
 | `^S` / `^N` | reveal password (10 s) / show note |
 | `^U` | open website |
-| `^R` | reload vault |
-| `Esc` | close details, then quit |
+| `^R` | reload · `PgUp` `PgDn` `^Home` `^End` jump |
 
-Re-run `dashlane-menu-sync` (or "Passwords → Sync vault" in the menu) after adding entries — Omarchy menu providers are hardcoded, so the submenu is generated statically.
+**Menu** — `omarchy menu summon passwords` → entry → copy password / login / OTP.
 
-## Layout
+☝️ New vault entries show up in the app on `^R` and in the menu after *Passwords → Sync vault* (`dashlane-menu-sync`).
+
+Handy keybinds for `~/.config/hypr/bindings.lua`:
+
+```lua
+o.bind("SUPER + SHIFT + P", "Passwords", "dashlane-app")
+o.bind("SUPER + ALT + P",   "Passwords menu", "omarchy-menu summon passwords")
 ```
-app/dashlane.qml       window, search, keys
-app/Vault.qml          singleton: all dcli-facing logic + secret lifetime
-app/Theme.qml          singleton: Omarchy theme colors
-app/{Sidebar,EntryRow,Field,IconButton,LockedView}.qml
-bin/dashlane-list      vault metadata JSON, secrets stripped
-bin/dashlane-field     one field on demand
-bin/dashlane-copy      copy → clipboard (sensitive, 30 s clear)
-bin/dashlane-lock      dcli lock + screen lock (hypridle)
-bin/dashlane-menu-sync Omarchy menu generator
-bin/dashlane-sync      login terminal
-manifest.json          the repo root is the Omarchy plugin
-BarWidget.qml          bar icon
-Panel.qml              mini popup
-test/                  self-tests + fake dcli
-```
+
+## Security
+
+- **Auth and crypto are `dcli`'s.** Pinned release, sha256-verified. Unlock is dcli's own prompt.
+- **Secrets never enter the UI wholesale.** `dashlane-list` strips `password`/`otpSecret`; one field is fetched on demand, travels through pipes only (never argv, never disk) and is wiped on entry change, close, quit or lock.
+- **Prefetch, narrowly.** Only the entry open in the sidebar gets its password prefetched, so reveal/copy are instant. Nothing else, and never in the bar popup.
+- **Clipboard.** `wl-copy --sensitive` (Omarchy's clipboard history skips it), cleared after 30 s.
+- **Lock.** `dashlane-lock` runs `dcli lock` before the screen locks or the laptop sleeps.
+- **Not covered:** autofill and domain matching — keep the browser extension for in-browser logins. Password history isn't exported by `dcli`.
+
+☝️ Like every desktop password manager, the vault is readable by anything running as your user while it's unlocked. Lock it (it does so with the screen) and don't run untrusted code.
 
 ## Development
-```sh
-test/test.sh
-DASHLANE_JSON=$PWD/test/vault.json PATH=$PWD/test/fake:$PATH dashlane-app   # fixture vault, no login
+
+```bash
+test/test.sh                                                        # self-tests with a fake dcli
+DASHLANE_JSON=$PWD/test/vault.json PATH=$PWD/test/fake:$PATH dashlane-app   # app with fixture data, no login
+omarchy plugin validate .
 ```
 
-MIT — see [LICENSE](LICENSE). Not affiliated with Dashlane.
+```
+manifest.json, BarWidget.qml, Panel.qml   the Omarchy plugin (bar icon + popup)
+app/                                      the Quickshell app (Vault.qml holds all dcli-facing logic)
+bin/                                      dashlane-list / -field / -copy / -lock / -menu-sync / -sync / -app
+install.sh · uninstall.sh                 the non-plugin bits
+```
+
+`./uninstall.sh` reverts everything except `dcli` and its vault.
+
+## 📝 License
+
+[MIT License](LICENSE)
+
+Not affiliated with Dashlane. Made by [TobeyTG](https://tobeytg.de/) ✌️
