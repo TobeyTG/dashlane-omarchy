@@ -1,5 +1,29 @@
 [
- {"id":"aaa","title":"GitHub","url":"https://github.com","login":"tobi","password":"aaa","otpSecret":"JBSWY3DP"},
- {"id":"bbb","title":"Amazon","url":"https://www.amazon.de/","email":"t@example.com","password":"bbb"},
- {"id":"ccc","url":"https://example.org","password":"ccc"}
+  {
+    "id": "aaa",
+    "title": "GitHub",
+    "url": "https://github.com",
+    "login": "tobi",
+    "password": "aaa",
+    "otpSecret": "JBSWY3DP",
+    "modificationDatetime": "1756400000",
+    "lastUse": "1756480000",
+    "numberUse": "42",
+    "strength": "85",
+    "note": "recovery codes: 1234",
+    "category": "Dev"
+  },
+  {
+    "id": "bbb",
+    "title": "Amazon",
+    "url": "https://www.amazon.de/",
+    "email": "t@example.com",
+    "password": "bbb",
+    "strength": "30"
+  },
+  {
+    "id": "ccc",
+    "url": "https://example.org",
+    "password": "ccc"
+  }
 ]

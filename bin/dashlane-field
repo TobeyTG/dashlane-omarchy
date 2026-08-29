@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# dashlane-field <id> <password|login|email|otp|note> — print one field to stdout (on-demand secret fetch).
+set -euo pipefail
+id=$1; f=$2
+case $f in
+  note) timeout 20 dcli p "id=$id" -o json </dev/null | jq -r '.[0].note // ""' ;;
+  *)    timeout 20 dcli p "id=$id" -f "$f" -o console </dev/null ;;
+esac
