@@ -16,10 +16,4 @@ jobs:
           WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 sway -c /dev/null >/tmp/sway.log 2>&1 &
           for i in $(seq 1 50); do [ -e $XDG_RUNTIME_DIR/wayland-1 ] && break; sleep 0.2; done
           export WAYLAND_DISPLAY=wayland-1
-          echo "--- diag"; wl-copy --version; ls -la $XDG_RUNTIME_DIR; tail -5 /tmp/sway.log
-          printf plain | wl-copy; sleep 0.5; echo "plain: $(wl-paste -n 2>&1)"
-          printf sens | wl-copy --sensitive -t text/plain; sleep 0.5; echo "sensitive: $(wl-paste -n 2>&1)"
-          printf sid | setsid wl-copy -t text/plain; sleep 0.5; echo "setsid: $(wl-paste -n 2>&1)"
-          printf fg | wl-copy -f -t text/plain & sleep 0.5; echo "foreground: $(wl-paste -n 2>&1)"; kill %1 2>/dev/null || true
-          echo "--- end diag"
           test/test.sh
