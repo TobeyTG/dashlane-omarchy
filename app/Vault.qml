@@ -5,8 +5,8 @@ import Quickshell.Io
 
 // All vault access. Nothing here talks to dcli directly: the bin/ scripts do, and they
 // strip secrets (dashlane-list) or hand over exactly one field on demand (dashlane-field).
-// Secrets held here (shownPassword, otpCode, noteText) are cleared on entry change,
-// sidebar close, or timeout.
+// Secrets held here (shownPassword, otpCode, noteText, cachedPassword) are cleared on entry
+// change, sidebar close, or timeout — "cleared" = reference dropped; JS strings can't be zeroed.
 Singleton {
   id: root
 
