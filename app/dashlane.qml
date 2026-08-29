@@ -64,11 +64,31 @@ ShellRoot {
 
   Process { id: copier; property string what
     stdout: StdioCollector {}
-    onExited: function (code) { root.showToast(code === 0 ? "Copied " + copier.what : "Copy failed — vault locked?") } }
+    onExited: function (code) { root.showToast(code === 0 ? "Copied " + copier.what + " · clears in 30s" : "Copy failed — vault locked?") } }
+  // Reveal: fetch the secret once, show it under the row for 10s, never keep it around longer.
+  property string revealedId: ""
+  property string revealedText: ""
+  Process { id: revealer; property string id
+    stdout: StdioCollector { onStreamFinished: { root.revealedText = text.trim(); root.revealedId = revealer.id; revealTimer.restart() } } }
+  function reveal(entry) {
+    if (!entry) return
+    if (root.revealedId === entry.id) { root.hideReveal(); return }
+    revealer.id = entry.id
+    revealer.command = ["sh", "-c", "timeout 20 dcli p id=" + entry.id + " -f password -o console </dev/null"]
+    revealer.running = true
+  }
+  function hideReveal() { root.revealedId = ""; root.revealedText = "" }
+  Timer { id: revealTimer; interval: 10000; onTriggered: root.hideReveal() }
+  Process { id: opener }
+  function openUrl(entry) {
+    if (!entry || !entry.url) return
+    opener.command = ["xdg-open", entry.url.match(/^https?:\/\//) ? entry.url : "https://" + entry.url]
+    opener.running = true; root.showToast("Opened " + root.host(entry))
+  }
   function copy(entry, field) {
     if (!entry) return
     copier.what = field
-    copier.command = ["sh", "-c", "timeout 20 dcli p id=" + entry.id + " -f " + field + " -o clipboard </dev/null"]
+    copier.command = ["dashlane-copy", entry.id, field]
     copier.running = true
   }
   function showToast(m) { root.toast = m; toastTimer.restart() }
@@ -113,6 +133,8 @@ ShellRoot {
                 if (ev.key === Qt.Key_L) root.copy(e, "login")
                 else if (ev.key === Qt.Key_O) root.copy(e, "otp")
                 else if (ev.key === Qt.Key_R) root.reload()
+                else if (ev.key === Qt.Key_S) root.reveal(e)
+                else if (ev.key === Qt.Key_U) root.openUrl(e)
                 else return
                 ev.accepted = true
               }
@@ -151,7 +173,9 @@ ShellRoot {
           required property var modelData
           required property int index
           property var entry: modelData
-          width: list.width; height: 56; radius: 10
+          width: list.width; height: revealed ? 80 : 56; radius: 10
+          property bool revealed: root.revealedId === entry.id
+          Behavior on height { NumberAnimation { duration: 80 } }
           color: ListView.isCurrentItem ? root.bg3 : (hover.hovered ? Qt.darker(root.bg3, 1.2) : "transparent")
           HoverHandler { id: hover }
           TapHandler { onTapped: list.currentIndex = index; onDoubleTapped: root.copy(entry, "password") }
@@ -162,13 +186,14 @@ ShellRoot {
             ColumnLayout { Layout.fillWidth: true; spacing: 2
               Text { text: entry.title || root.host(entry) || "untitled"; color: root.fg; font.family: root.font; font.pixelSize: 14; elide: Text.ElideRight; Layout.fillWidth: true }
               Text { text: [entry.login || entry.email, root.host(entry)].filter(Boolean).join("  ·  "); color: root.fg2; font.family: root.font; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+              Text { visible: revealed; text: root.revealedText; color: root.green; font.family: root.font; font.pixelSize: 13; Layout.fillWidth: true; elide: Text.ElideRight }
             }
             Repeater {
-              model: [["󰌾", "password"], ["󰀄", "login"]].concat(entry.otpSecret ? [["󰦝", "otp"]] : [])
+              model: [["󰌾", "password"], ["󰀄", "login"]].concat(entry.otpSecret ? [["󰦝", "otp"]] : []).concat([["󰈈", "reveal"]]).concat(entry.url ? [["󰖟", "open"]] : [])
               Rectangle { required property var modelData; width: 30; height: 30; radius: 7
                 color: h2.hovered ? root.accent : "transparent"
                 HoverHandler { id: h2 }
-                TapHandler { onTapped: root.copy(entry, modelData[1]) }
+                TapHandler { onTapped: modelData[1] === "reveal" ? root.reveal(entry) : modelData[1] === "open" ? root.openUrl(entry) : root.copy(entry, modelData[1]) }
                 Text { anchors.centerIn: parent; text: modelData[0]; font.family: root.font; font.pixelSize: 14; color: h2.hovered ? root.bg : root.fg2 } }
             }
           }
@@ -177,7 +202,7 @@ ShellRoot {
 
       // footer
       RowLayout { Layout.fillWidth: true
-        Text { text: "⏎ password   ^L login   ^O otp   ^R reload   esc quit"; color: root.fg2; font.family: root.font; font.pixelSize: 11 }
+        Text { text: "⏎ password   ^L login   ^O otp   ^S reveal   ^U open   ^R reload   esc quit"; color: root.fg2; font.family: root.font; font.pixelSize: 11 }
         Item { Layout.fillWidth: true }
         Text { text: root.toast; color: root.green; font.family: root.font; font.pixelSize: 12; font.bold: true }
       }

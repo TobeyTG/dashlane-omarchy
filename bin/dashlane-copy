@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
-# dashlane-copy <id> [password|login|email|otp] — copy one field to clipboard.
+# dashlane-copy <id> [password|login|email|otp] — copy one field to clipboard (cleared after 30s).
+# dcli's own clipboard output is broken on Wayland, so we pipe console output into wl-copy.
 # If the vault is locked, opens a terminal with the official CLI login (dcli sync) and retries.
 set -euo pipefail
 id=$1; field=${2:-password}
-if ! dcli p "id=$id" -f "$field" -o clipboard </dev/null 2>/dev/null; then
+locked() { ! timeout 20 dcli p "id=$id" -o json </dev/null >/dev/null 2>&1; }
+get() {  # login falls back to email (dcli errors if the entry has only one of them)
+  local f; for f in "$field" $([[ $field == login ]] && echo email); do
+    timeout 20 dcli p "id=$id" -f "$f" -o console </dev/null 2>/dev/null && return; done; return 1
+}
+if locked; then
   notify-send -a Dashlane "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal" 2>/dev/null || true
   omarchy-launch-floating-terminal-with-presentation "dcli sync" || true
   sleep 2; while pgrep -f "dcli sync" >/dev/null; do sleep 1; done   # launcher detaches; wait for the login to finish
-  dcli p "id=$id" -f "$field" -o clipboard
 fi
-notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field" 2>/dev/null || true
+secret=$(get) || { notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1; }
+printf '%s' "$secret" | wl-copy
+notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field (clears in 30s)" 2>/dev/null || true
+setsid bash -c 'sleep 30; [[ "$(wl-paste 2>/dev/null)" == "$1" ]] && wl-copy --clear' _ "$secret" >/dev/null 2>&1 < /dev/null &

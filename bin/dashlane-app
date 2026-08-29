@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
+export PATH="$(dirname "$(readlink -f "$0")"):$PATH"
 exec quickshell -p "$(dirname "$(readlink -f "$0")")/../app/dashlane.qml" "$@"

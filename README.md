@@ -22,7 +22,7 @@ dashlane-menu-sync
 Then `omarchy menu summon passwords` or `dashlane-app`. See install.sh output for keybind/float-rule snippets.
 
 ## App keys
-`⏎` copy password · `^L` login · `^O` OTP · `^R` reload · `Esc` quit · double-click / icons work too.
+`⏎` copy password · `^L` login (falls back to email) · `^O` OTP · `^S` reveal password (10s) · `^U` open site · `^R` reload · `Esc` quit · row icons do the same. Clipboard clears itself after 30s.
 
 ## Notes
 - Omarchy menu `provider`s are hardcoded, so the menu is generated statically; re-run `dashlane-menu-sync` (or "Sync vault" in the menu) after adding entries.
