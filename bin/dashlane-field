@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # dashlane-field <id> <password|login|email|otp|note> — print one field to stdout (on-demand secret fetch).
 set -euo pipefail
+export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where install.sh puts dcli
+[[ $# -eq 2 ]] || { echo "usage: dashlane-field <id> <password|login|email|otp|note>" >&2; exit 2; }
 id=$1; f=$2
 case $f in
   note) timeout 20 dcli p "id=$id" -o json </dev/null | jq -r '.[0].note // ""' ;;

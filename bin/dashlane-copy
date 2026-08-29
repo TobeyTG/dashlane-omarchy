@@ -7,6 +7,8 @@
 # history (Omarchy honours the hint); cleared after 30s. If the vault is locked, opens a terminal
 # with the official CLI login (dcli sync) and retries.
 set -euo pipefail
+export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where install.sh puts dcli; callers (shell, hypridle) may lack it
+[[ $# -ge 1 ]] || { echo "usage: dashlane-copy [--quiet] <id> [password|login|email|otp] [label] | --stdin <field> [label]" >&2; exit 2; }
 notify() { [[ -n $quiet ]] || notify-send -a Dashlane -t 1500 "$@" 2>/dev/null || true; }
 quiet=""; [[ ${1:-} == --quiet ]] && { quiet=1; shift; }
 if [[ $1 == --stdin ]]; then
@@ -20,7 +22,7 @@ get() {  # login falls back to email (dcli errors if the entry has only one of t
 }
 if ! secret=$(get); then
   if ! timeout 20 dcli p "id=$id" -o json </dev/null >/dev/null 2>&1; then   # locked → login, retry
-    notify-send -a Dashlane "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal" 2>/dev/null || true
+    notify "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal"
     omarchy-launch-floating-terminal-with-presentation "dcli sync" || true
     # The launcher detaches, so wait for a `dcli sync` process to appear and finish — bounded.
     # Login needs email + master password + a device code that Dashlane e-mails; slow mail is

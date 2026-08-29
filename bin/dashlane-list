@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Vault metadata as JSON — id/title/url/login/email/hasOtp. No secrets.
 set -euo pipefail
+export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where install.sh puts dcli
 src() { if [[ -n ${DASHLANE_JSON:-} ]]; then cat "$DASHLANE_JSON"; else timeout 20 dcli p -o json </dev/null; fi; }  # DASHLANE_JSON = fixture for tests
 src | jq 'map({id,title,url,login,email,secondaryLogin,category,modificationDatetime,lastUse,numberUse,strength,hasOtp:((.otpSecret // "") != ""),hasNote:((.note // "") != "")})'

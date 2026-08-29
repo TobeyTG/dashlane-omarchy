@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: hypridle runs this with a minimal environment
 # Lock the Dashlane vault, then the screen. Use as hypridle lock_cmd / before_sleep_cmd.
 timeout 5 dcli lock </dev/null >/dev/null 2>&1 || true
 pkill -f '^quickshell -p .*dashlane.qml' 2>/dev/null || true   # drop any revealed/loaded state

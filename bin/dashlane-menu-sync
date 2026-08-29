@@ -3,6 +3,7 @@
 # from the Dashlane vault. Only titles/logins are written — never secrets.
 # Usage: dashlane-menu-sync [vault.json]   (file arg = offline/test input)
 set -euo pipefail
+export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where install.sh puts dcli
 menu=${DASHLANE_MENU_FILE:-$HOME/.config/omarchy/extensions/omarchy-menu.jsonc}
 src=${1:-}
 
@@ -14,8 +15,8 @@ bad=$(jq -r '.[].id' <<<"$json" | grep -vE '^[{}A-Za-z0-9_-]+$' || true)
 [[ -z $bad ]] || { echo "skipping entries with unexpected ids: $bad" >&2; json=$(jq 'map(select(.id|test("^[{}A-Za-z0-9_-]+$")))' <<<"$json"); }
 block=$(jq -r '
   sort_by(.title // .url // "" | ascii_downcase) | to_entries[] | .value as $c |
-  ($c.title // $c.url // "untitled") as $label |
-  ($c.login // $c.email // "") as $login |
+  ([$c.title, $c.url, "untitled"] | map(select(. != null and . != "")) | first) as $label |
+  ([$c.login, $c.email, ""] | map(select(. != null)) | first) as $login |
   "  \"passwords.\(.key)\": {\"icon\":\"󰌾\",\"label\":\($label|tojson),\"description\":\($login|tojson)},\n" +
   "  \"passwords.\(.key).pw\": {\"icon\":\"󰌾\",\"label\":\"Copy password\",\"action\":\"dashlane-copy \($c.id) password\"},\n" +
   "  \"passwords.\(.key).login\": {\"icon\":\"󰀄\",\"label\":\"Copy login\",\"action\":\"dashlane-copy \($c.id) \(if ($c.login // "") != "" then "login" else "email" end)\"},\n" +
