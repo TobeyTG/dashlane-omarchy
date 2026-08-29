@@ -22,8 +22,11 @@ if ! secret=$(get); then
   if ! timeout 20 dcli p "id=$id" -o json </dev/null >/dev/null 2>&1; then   # locked → login, retry
     notify-send -a Dashlane "Dashlane" "Vault locked — log in with the official Dashlane CLI in the terminal" 2>/dev/null || true
     omarchy-launch-floating-terminal-with-presentation "dcli sync" || true
-    sleep 2; while pgrep -f "dcli sync" >/dev/null; do sleep 1; done   # launcher detaches; wait for the login to finish
-    secret=$(get) || { notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1; }
+    # The launcher detaches, so wait for a `dcli sync` process to appear and finish — bounded.
+    login_running() { pgrep -x dcli -a 2>/dev/null | grep -qE '(^|[[:space:]])dcli[[:space:]]+sync([[:space:]]|$)'; }
+    for _ in $(seq 1 20); do login_running && break; sleep 0.5; done
+    for _ in $(seq 1 180); do login_running || break; sleep 1; done    # ≤3 min for the user to log in
+    secret=$(get) || { notify "Dashlane" "Login did not complete — vault still locked"; exit 1; }
   else
     notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1
   fi
