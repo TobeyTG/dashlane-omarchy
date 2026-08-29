@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-export PATH="$(dirname "$(readlink -f "$0")"):$PATH"
-exec quickshell -p "$(dirname "$(readlink -f "$0")")/../app/dashlane.qml" "$@"
+here=$(dirname "$(readlink -f "$0")")
+export PATH="$here:$PATH"
+exec quickshell -p "$here/../app/dashlane.qml" "$@"

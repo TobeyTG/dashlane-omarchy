@@ -7,7 +7,7 @@ menu=${DASHLANE_MENU_FILE:-$HOME/.config/omarchy/extensions/omarchy-menu.jsonc}
 src=${1:-}
 
 strip='map({id,title,url,login,email,hasOtp:((.otpSecret // "") != "")})'
-json=$( [[ -n $src ]] && jq "$strip" "$src" || dashlane-list )   # metadata only — secrets never enter this script
+if [[ -n $src ]]; then json=$(jq "$strip" "$src"); else json=$(dashlane-list); fi   # metadata only — secrets never enter this script
 
 block=$(jq -r '
   sort_by(.title // .url // "" | ascii_downcase) | to_entries[] | .value as $c |

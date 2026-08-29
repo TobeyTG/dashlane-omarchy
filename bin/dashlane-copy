@@ -21,4 +21,5 @@ host=$(dc -o json 2>/dev/null | jq -r '.[0].url // .[0].title // ""' | sed -E 's
 get | tr -d '\n' | wl-copy --sensitive -t text/plain || { notify-send -a Dashlane -u critical "Dashlane" "No $field on this entry" 2>/dev/null; exit 1; }
 notify-send -a Dashlane -t 3000 "Dashlane" "Copied $field for $host (clears in 30s)" 2>/dev/null || true
 # fallback clear: after 30s, wipe the clipboard if it still holds this secret (compared via stdin, not argv)
+# shellcheck disable=SC2016  # $s is expanded by the inner bash on purpose
 get | tr -d '\n' | setsid bash -c 'IFS= read -r s; sleep 30; [[ "$(wl-paste -n 2>/dev/null)" == "$s" ]] && wl-copy --clear' >/dev/null 2>&1 &
