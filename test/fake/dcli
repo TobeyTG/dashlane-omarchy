@@ -4,4 +4,4 @@ v="$(dirname "$0")/../vault.json"
 id=""; field=password; out=json
 for a in "$@"; do case $a in id=*) id=${a#id=};; console|json|clipboard) out=$a;; password|login|email|otp) field=$a;; esac; done
 q='.'; [[ -n $id ]] && q="map(select(.id==\"$id\"))"
-if [[ $out == console ]]; then jq -er "$q | .[0].$field // empty" "$v" | sed 's/^/x-secret-/'; else jq "$q" "$v"; fi
+if [[ $out == console && $field == otp ]]; then jq -e "$q | .[0].otpSecret // empty" "$v" >/dev/null && echo 123456; elif [[ $out == console ]]; then jq -er "$q | .[0].$field // empty" "$v" | sed 's/^/x-secret-/'; else jq "$q" "$v"; fi
