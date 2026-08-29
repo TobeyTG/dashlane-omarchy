@@ -18,6 +18,7 @@ everything *outside* the browser — SSH, terminals, desktop apps — as a thin,
 ## Security model
 - **Auth and crypto are `dcli`'s.** The app never sees your master password: login/unlock happens in dcli's own terminal prompt. `install.sh` pins `dcli` to a release and verifies its sha256.
 - **Secrets never enter the UI process wholesale.** `dashlane-list` strips `password`/`otpSecret` with `jq`; one field is fetched on demand via `dashlane-field`, travels through pipes only (never argv, never disk), and is wiped on entry change, sidebar close, quit, or after 10 s.
+- **Prefetch, narrowly:** when an entry is open in the sidebar, *that entry's* password is fetched once in the background so reveal/copy are instant. It is held only while the entry stays selected, never shown until you reveal it, and wiped on entry change, sidebar close, quit, or lock. Nothing else is prefetched; the bar popup never prefetches.
 - **Clipboard:** `wl-copy --sensitive` (Omarchy's clipboard history skips it), cleared after 30 s.
 - **Lock:** `dashlane-lock` runs `dcli lock`, closes the app, then locks the screen. Installed as hypridle `lock_cmd` / `before_sleep_cmd`, so the vault re-asks for the master password after every lock or sleep.
 - **Out of scope:** in-browser autofill and domain matching (keep the extension for that); memory hardening inside `dcli` (it's Node); password history (not exported by `dcli`).
