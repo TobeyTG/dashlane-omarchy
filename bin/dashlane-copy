@@ -13,7 +13,7 @@ export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where ins
 notify() { [[ -n $quiet ]] || notify-send -a Dashlane -t 1500 "$@" 2>/dev/null || true; }
 quiet=""; [[ ${1:-} == --quiet ]] && { quiet=1; shift; }
 if [[ $1 == --stdin ]]; then
-  field=$2; label=${3:-}; secret=$(cat)
+  field=$2; label=${3:-}; secret=$(head -c 4096)   # bounded like dashlane-field
   [[ -n $secret ]] || exit 1
 else
 id=$1; field=${2:-password}; label=${3:-}
@@ -41,8 +41,8 @@ fi
 # versions lack the flag, so feature-detect it. setsid: the server must survive the caller exiting.
 sensitive=(); wl-copy --help 2>&1 | grep -q -- --sensitive && sensitive=(--sensitive)
 if [[ -z ${sensitive[*]} ]]; then   # warn once per session: the value will land in clipboard history
-  mark=${XDG_RUNTIME_DIR:-/tmp}/dashlane-copy.no-sensitive
-  [[ -e $mark ]] || { touch "$mark"; notify-send -a Dashlane -u normal "Dashlane" "wl-clipboard < 2.2.2: copied values are not hidden from clipboard history" 2>/dev/null || true; }
+  mark=${XDG_RUNTIME_DIR:-$HOME/.cache}/dashlane-copy.no-sensitive   # never a world-writable dir: touch follows symlinks
+  [[ -e $mark ]] || { touch "$mark" 2>/dev/null; notify-send -a Dashlane -u normal "Dashlane" "wl-clipboard < 2.2.2: copied values are not hidden from clipboard history" 2>/dev/null || true; }
 fi
 printf '%s' "$secret" | tr -d '\n' | setsid wl-copy "${sensitive[@]}" -t text/plain
 notify "Dashlane" "Copied $field${label:+ for $label} (clears in 30s)"

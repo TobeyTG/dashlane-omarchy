@@ -59,7 +59,7 @@ Singleton {
     if (root.selected !== entry) { root.selected = entry; root.clearSecrets() }
     if (open && entry) root.sidebarOpen = true
   }
-  function clearSecrets() { root.shownPassword = ""; root.otpCode = ""; root.otpShown = false; root.noteText = ""; pwTimer.stop() }
+  function clearSecrets() { root.shownPassword = ""; root.otpCode = ""; root.otpShown = false; root.noteText = ""; pwTimer.stop(); noteTimer.stop() }
   function closeSidebar() { root.sidebarOpen = false; root.clearSecrets() }
 
   // Two processes so a slow/looping OTP refresh can never block a password/note reveal.
@@ -68,7 +68,7 @@ Singleton {
       var t = text.replace(/\n$/, "")
       if (!root.selected || fielder.forId !== root.selected.id) return   // selection moved on; drop it
       if (fielder.which === "password") { root.shownPassword = t; pwTimer.restart() }
-      else if (fielder.which === "note") root.noteText = t
+      else if (fielder.which === "note") { root.noteText = t; noteTimer.restart() }
     } } }
   Process { id: otpFetcher; stdout: StdioCollector { onStreamFinished: root.otpCode = text.replace(/\n$/, "") } }
   function fetch(which) {
@@ -84,6 +84,7 @@ Singleton {
     else root.fetch("password")
   }
   function toggleNote() { if (root.noteText) root.noteText = ""; else root.fetch("note") }
+  Timer { id: noteTimer; interval: 60000; onTriggered: root.noteText = "" }   // notes are read, not glanced at: 60s
   function toggleOtp() { if (root.otpShown) { root.otpShown = false; root.otpCode = "" } else { root.otpShown = true; root.fetch("otp") } }
   property bool otpShown: false
   function reveal(entry) { root.select(entry, true); root.togglePassword() }
