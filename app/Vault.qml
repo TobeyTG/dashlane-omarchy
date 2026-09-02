@@ -5,8 +5,9 @@ import Quickshell.Io
 
 // All vault access. Nothing here talks to dcli directly: the bin/ scripts do, and they
 // strip secrets (dashlane-list) or hand over exactly one field on demand (dashlane-field).
-// Secrets held here (shownPassword, otpCode, noteText, cachedPassword) are cleared on entry
-// change, sidebar close, or timeout — "cleared" = reference dropped; JS strings can't be zeroed.
+// Secrets held here (shownPassword, otpCode, noteText) are fetched only on an explicit user
+// action (reveal / copy / show note) and cleared on entry change, sidebar close, or timeout —
+// "cleared" = reference dropped; JS strings can't be zeroed.
 Singleton {
   id: root
 
@@ -28,9 +29,11 @@ Singleton {
   function parse(t) {
     try {
       var arr = JSON.parse(t)
+      if (!Array.isArray(arr)) throw new Error("not an array")   // dashlane-list also bounds size/lengths
+      arr = arr.filter(function (e) { return e && typeof e === "object" && typeof e.id === "string" }).slice(0, 5000)
       arr.sort(function (a, b) { return root.name(a).toLowerCase() < root.name(b).toLowerCase() ? -1 : 1 })
       root.entries = arr; root.status = ""
-      if (Quickshell.env("DASHLANE_TEST_OPEN") && arr.length) {   // screenshot/test hook: open an entry; "copy" also copies after prefetch
+      if (Quickshell.env("DASHLANE_TEST_OPEN") && arr.length) {   // screenshot/test hook: open an entry, reveal or copy
         root.select(arr.find(function (e) { return e.hasOtp }) || arr[0], true)
         if (Quickshell.env("DASHLANE_TEST_OPEN") === "copy") testCopy.start(); else root.togglePassword()
       }
@@ -56,66 +59,54 @@ Singleton {
     if (root.selected !== entry) { root.selected = entry; root.clearSecrets() }
     if (open && entry) root.sidebarOpen = true
   }
-  function clearSecrets() { root.shownPassword = ""; root.otpCode = ""; root.noteText = ""; root.cachedPassword = ""; root.cachedId = ""; pwTimer.stop(); prefetchTimer.stop() }
-
-  // Prefetch: once an entry is shown in the sidebar, fetch its password in the background so
-  // reveal/copy are instant. Only ever the selected entry, held while it stays selected, wiped by
-  // clearSecrets(). Never displayed until the user reveals it.
-  property string cachedPassword: ""
-  property string cachedId: ""
-  Timer { id: prefetchTimer; interval: 300; onTriggered: if (root.selected && !root.cachedPassword) root.fetch("password", true) }
-  onSelectedChanged: if (root.sidebarOpen) prefetchTimer.restart()
-  onSidebarOpenChanged: if (root.sidebarOpen) prefetchTimer.restart()
+  function clearSecrets() { root.shownPassword = ""; root.otpCode = ""; root.otpShown = false; root.noteText = ""; pwTimer.stop() }
   function closeSidebar() { root.sidebarOpen = false; root.clearSecrets() }
 
   // Two processes so a slow/looping OTP refresh can never block a password/note reveal.
-  Process { id: fielder; property string which; property bool silent: false; property string forId: ""
+  Process { id: fielder; property string which; property string forId: ""
     stdout: StdioCollector { onStreamFinished: {
       var t = text.replace(/\n$/, "")
       if (!root.selected || fielder.forId !== root.selected.id) return   // selection moved on; drop it
-      if (fielder.which === "password") { root.cachedPassword = t; root.cachedId = fielder.forId; if (!fielder.silent) { root.shownPassword = t; pwTimer.restart() } }
+      if (fielder.which === "password") { root.shownPassword = t; pwTimer.restart() }
       else if (fielder.which === "note") root.noteText = t
     } } }
   Process { id: otpFetcher; stdout: StdioCollector { onStreamFinished: root.otpCode = text.replace(/\n$/, "") } }
-  function fetch(which, silent) {
+  function fetch(which) {
     if (!root.selected) return
     if (which === "otp") { if (!otpFetcher.running) { otpFetcher.command = ["dashlane-field", root.selected.id, "otp"]; otpFetcher.running = true } return }
-    if (fielder.running) { if (fielder.which === which && fielder.forId === root.selected.id) fielder.silent = fielder.silent && !!silent; return }
-    fielder.which = which; fielder.silent = !!silent; fielder.forId = root.selected.id
+    if (fielder.running) return
+    fielder.which = which; fielder.forId = root.selected.id
     fielder.command = ["dashlane-field", root.selected.id, which]; fielder.running = true
   }
-  readonly property bool fetching: fielder.running && !fielder.silent
+  readonly property bool fetching: fielder.running
   function togglePassword() {
     if (root.shownPassword) { root.shownPassword = ""; pwTimer.stop() }
-    else if (root.cachedPassword && root.selected && root.cachedId === root.selected.id) { root.shownPassword = root.cachedPassword; pwTimer.restart() }
     else root.fetch("password")
   }
   function toggleNote() { if (root.noteText) root.noteText = ""; else root.fetch("note") }
+  function toggleOtp() { if (root.otpShown) { root.otpShown = false; root.otpCode = "" } else { root.otpShown = true; root.fetch("otp") } }
+  property bool otpShown: false
   function reveal(entry) { root.select(entry, true); root.togglePassword() }
   Timer { id: pwTimer; interval: 10000; onTriggered: root.shownPassword = "" }
 
-  // OTP: fetch once when shown, then only at each 30s boundary (dcli costs ~0.6s per call).
+  // OTP: fetched only after the user reveals it, then refreshed at each 30s boundary while
+  // revealed (dcli costs ~0.6s per call). Copy never needs a reveal: dashlane-copy fetches itself.
   property int otpLeft: 30
   Timer { interval: 1000; repeat: true; triggeredOnStart: true
-    running: root.sidebarOpen && !!root.selected && !!root.selected.hasOtp
-    onRunningChanged: if (running) root.fetch("otp")
+    running: root.sidebarOpen && root.otpShown
     onTriggered: { var left = 30 - (Math.floor(Date.now() / 1000) % 30); if (left > root.otpLeft) root.fetch("otp"); root.otpLeft = left } }
 
   // ---- actions ----
   signal toast(string message)
-  Process { id: copier; property string what; property var entry: ({}); property string pendingStdin: ""
+  Process { id: copier; property string what; property var entry: ({})
     stdout: StdioCollector {}
-    onStarted: if (pendingStdin) { write(pendingStdin); pendingStdin = ""; stdinEnabled = false }   // the process must be running before write()
     onExited: function (code) { root.toast(code === 0 ? "Copied " + copier.what + " · " + root.host(copier.entry) : "Copy failed — vault locked?") } }
   function copy(entry, field) {
     if (!entry) return
     if (copier.running) { root.toast("Still copying…"); return }
     if (field === "login" && !entry.login && entry.email) field = "email"   // skip dcli's failing login lookup
     copier.what = field; copier.entry = entry
-    if (field === "password" && root.cachedPassword && root.cachedId === entry.id) {   // prefetched → instant, via stdin
-      copier.command = ["dashlane-copy", "--quiet", "--stdin", field, root.host(entry)]; copier.pendingStdin = root.cachedPassword
-      copier.stdinEnabled = true; copier.running = true
-    } else { copier.command = ["dashlane-copy", "--quiet", entry.id, field, root.host(entry)]; copier.running = true; root.toast("Copying " + field + "…") }
+    copier.command = ["dashlane-copy", "--quiet", entry.id, field, root.host(entry)]; copier.running = true; root.toast("Copying " + field + "…")
   }
   Process { id: opener }
   function openUrl(entry) {

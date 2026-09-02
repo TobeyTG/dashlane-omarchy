@@ -62,7 +62,8 @@ Panel {
   function showToast(m) { toast = m; toastTimer.restart() }
 
   Process { id: loader; command: [root.binDir + "dashlane-list"]
-    stdout: StdioCollector { onStreamFinished: { try { root.entries = JSON.parse(text).sort(function (a, b) { return root.name(a).toLowerCase() < root.name(b).toLowerCase() ? -1 : 1 }); root.loadedAt = Date.now() } catch (e) {} } }
+    stdout: StdioCollector { onStreamFinished: { try { var arr = JSON.parse(text); if (!Array.isArray(arr)) throw new Error("not an array")
+      root.entries = arr.filter(function (e) { return e && typeof e === "object" && typeof e.id === "string" }).slice(0, 5000).sort(function (a, b) { return root.name(a).toLowerCase() < root.name(b).toLowerCase() ? -1 : 1 }); root.loadedAt = Date.now() } catch (e) {} } }
     onExited: function (code) { root.locked = code !== 0; if (code !== 0) root.entries = [] } }
   Process { id: copier; property string field; stdout: StdioCollector {}
     onExited: function (code) { if (code === 0) { root.showToast("Copied " + copier.field); closeTimer.restart() } else root.showToast("Copy failed") } }
@@ -129,8 +130,8 @@ Panel {
           Row { anchors.fill: parent; anchors.leftMargin: Style.space(10); anchors.rightMargin: Style.space(10); spacing: Style.space(10)
             Text { anchors.verticalCenter: parent.verticalCenter; text: "󰌾"; color: Color.accent; font.family: root.fontFamily; font.pixelSize: Style.font.caption + 2 }
             Column { anchors.verticalCenter: parent.verticalCenter; width: parent.width - Style.space(30); spacing: 0
-              Text { width: parent.width; elide: Text.ElideRight; text: root.name(modelData); color: root.fg; font.family: root.fontFamily; font.pixelSize: Style.font.caption + 2 }
-              Text { width: parent.width; elide: Text.ElideRight; text: [modelData.login || modelData.email, root.host(modelData)].filter(Boolean).join(" · "); color: Qt.darker(root.fg, 1.5); font.family: root.fontFamily; font.pixelSize: Style.font.caption } }
+              Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.name(modelData); color: root.fg; font.family: root.fontFamily; font.pixelSize: Style.font.caption + 2 }
+              Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: [modelData.login || modelData.email, root.host(modelData)].filter(Boolean).join(" · "); color: Qt.darker(root.fg, 1.5); font.family: root.fontFamily; font.pixelSize: Style.font.caption } }
           }
         }
       }

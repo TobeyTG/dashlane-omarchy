@@ -1,12 +1,14 @@
 name: ci
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
     env:
       CI: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4.4.0
       - run: sudo apt-get install -y -q shellcheck jq wl-clipboard sway libnotify-bin
       - run: shellcheck -x bin/* install.sh uninstall.sh test/test.sh test/fake/dcli
       # Headless sway gives wl-copy/wl-paste a real Wayland seat, so the clipboard and

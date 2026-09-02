@@ -16,13 +16,23 @@ if ((${#missing[@]})); then
 fi
 
 # --- scripts, launcher, plugin --------------------------------------------------------------
+# Never replace a path we don't already own: a name collision is refused, not clobbered, so
+# uninstall can safely remove exactly what we created (and nothing a user or other tool put there).
+link() {
+  local src=$1 dst=$2
+  if [[ -e $dst || -L $dst ]] && [[ $(readlink -f "$dst" 2>/dev/null || true) != "$(readlink -f "$src")" ]]; then
+    echo "refusing to replace $dst — it is not ours; remove or rename it and re-run" >&2; exit 1
+  fi
+  ln -sfn "$src" "$dst"
+}
 mkdir -p ~/.local/bin ~/.local/share/applications ~/.config/omarchy/plugins
-for f in "$here"/bin/*; do ln -sf "$f" ~/.local/bin/; done
-ln -sf "$here/dashlane-omarchy.desktop" ~/.local/share/applications/
+for f in "$here"/bin/*; do link "$f" ~/.local/bin/"$(basename "$f")"; done
+link "$here/dashlane-omarchy.desktop" ~/.local/share/applications/dashlane-omarchy.desktop
 # The repo is the plugin. Skip the symlink when already installed via `omarchy plugin add`.
 [[ $here == "$HOME/.local/share/omarchy/plugins/"* || $here == "$HOME/.config/omarchy/plugins/"* ]] \
-  || ln -sfn "$here" ~/.config/omarchy/plugins/tobeytg.dashlane
-rm -f ~/.config/omarchy/plugins/dashlane-omarchy                               # pre-2026-08-30 install location
+  || link "$here" ~/.config/omarchy/plugins/tobeytg.dashlane
+old=~/.config/omarchy/plugins/dashlane-omarchy                                  # pre-2026-08-30 install location
+[[ -L $old && $(readlink -f "$old") == "$here" ]] && rm -f "$old"
 sed -i 's/"dashlane-omarchy.vault"/"tobeytg.dashlane"/' ~/.config/omarchy/shell.json 2>/dev/null || true   # id rename, 2026-08-30 — delete after 2027
 omarchy-shell shell rescanPlugins >/dev/null 2>&1 || true
 grep -q '"tobeytg.dashlane"' ~/.config/omarchy/shell.json 2>/dev/null \
@@ -36,10 +46,15 @@ if [[ -z $have ]] || [[ "$(printf '%s\n%s\n' "$DCLI_VERSION" "$have" | sort -V |
     *) echo "dcli has no official Linux build for $(uname -m); install it yourself (e.g. npm i -g @dashlane/cli) and re-run" >&2; exit 1 ;;
   esac
   echo "installing dcli $DCLI_VERSION (official Dashlane CLI) to ~/.local/bin"
-  curl -fsSL "https://github.com/Dashlane/dashlane-cli/releases/download/v$DCLI_VERSION/$asset" -o ~/.local/bin/dcli.new
-  echo "$sha  $HOME/.local/bin/dcli.new" | sha256sum -c --quiet - \
-    || { rm -f ~/.local/bin/dcli.new; echo "checksum mismatch — aborting" >&2; exit 1; }
-  chmod +x ~/.local/bin/dcli.new && mv ~/.local/bin/dcli.new ~/.local/bin/dcli
+  # Private, unpredictable temp file next to the target (same fs → atomic publish), HTTPS only,
+  # bounded in size and time; verified before it is ever named `dcli`.
+  new=$(mktemp ~/.local/bin/.dcli.XXXXXXXX)
+  trap 'rm -f "$new"' EXIT
+  curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 --max-time 600 --max-filesize 200000000 \
+    "https://github.com/Dashlane/dashlane-cli/releases/download/v$DCLI_VERSION/$asset" -o "$new"
+  echo "$sha  $new" | sha256sum -c --quiet - || { echo "checksum mismatch — aborting" >&2; exit 1; }
+  chmod 755 "$new" && mv -f "$new" ~/.local/bin/dcli
+  trap - EXIT
 else
   echo "dcli $have present (pin is $DCLI_VERSION), keeping it"
 fi

@@ -40,6 +40,14 @@ if grep -qE 'password|otpSecret|JBSWY3DP' <<<"$out"; then echo "FAIL: secret in 
 [[ $(jq -r '.[0].hasOtp' <<<"$out") == true ]]
 echo "list strips secrets ok"
 
+# dashlane-list bounds the trust boundary: schema, entry count, field length
+DASHLANE_JSON=<(echo '{"not":"an array"}') dashlane-list >/dev/null 2>&1 && { echo "FAIL: non-array accepted"; exit 1; }
+[[ $(DASHLANE_MAX_ITEMS=1 DASHLANE_JSON=test/vault.json dashlane-list | jq length) == 1 ]] || { echo "FAIL: entry cap not enforced"; exit 1; }
+big=$(mktemp); jq --arg t "$(printf 'x%.0s' $(seq 1 900))" 'map(.title = $t)' test/vault.json > "$big"
+[[ $(DASHLANE_MAX_FIELD=64 DASHLANE_JSON=$big dashlane-list | jq -r '.[0].title|length') == 64 ]] || { echo "FAIL: field length not clamped"; exit 1; }
+DASHLANE_MAX_BYTES=10 DASHLANE_JSON=$big dashlane-list >/dev/null 2>&1 && { echo "FAIL: byte cap not enforced"; exit 1; }
+rm -f "$big"; echo "list bounds vault data ok"
+
 # dashlane-copy: secret reaches the clipboard, never appears in any process argv
 if [[ -z ${WAYLAND_DISPLAY:-} && -n ${CI:-} ]]; then echo "FAIL: CI has no Wayland display — clipboard/argv tests would be skipped"; exit 1; fi
 [[ -n ${WAYLAND_DISPLAY:-} ]] || echo "SKIPPED clipboard/argv tests (no WAYLAND_DISPLAY)"

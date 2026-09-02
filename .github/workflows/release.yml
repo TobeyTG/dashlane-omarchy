@@ -3,15 +3,17 @@ on:
   push:
     branches: [master]
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:            # release-please opens the release PR and tags/publishes the release
+      contents: write
+      pull-requests: write
     steps:
       # Opens/updates a release PR from Conventional Commits (CHANGELOG.md + version bump in
       # manifest.json). Merging it tags vX.Y.Z and publishes the GitHub release with notes.
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071   # v4.4.1
         with:
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json

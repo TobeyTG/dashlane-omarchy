@@ -13,10 +13,10 @@ Rectangle {
     ColumnLayout { id: col; width: parent.width; spacing: 14
       RowLayout { spacing: 10; Layout.fillWidth: true
         Rectangle { width: 40; height: 40; radius: 10; color: Theme.bg3
-          Text { anchors.centerIn: parent; color: Theme.accent; font.family: Theme.font; font.pixelSize: 18; font.bold: true; text: Vault.initial(root.e) } }
+          Text { anchors.centerIn: parent; color: Theme.accent; font.family: Theme.font; font.pixelSize: 18; font.bold: true; textFormat: Text.PlainText; text: Vault.initial(root.e) } }
         ColumnLayout { Layout.fillWidth: true; spacing: 0
-          Text { text: Vault.name(root.e); color: Theme.fg; font.family: Theme.font; font.pixelSize: 15; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-          Text { text: Vault.host(root.e); color: Theme.fg2; font.family: Theme.font; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true } }
+          Text { textFormat: Text.PlainText; text: Vault.name(root.e); color: Theme.fg; font.family: Theme.font; font.pixelSize: 15; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
+          Text { textFormat: Text.PlainText; text: Vault.host(root.e); color: Theme.fg2; font.family: Theme.font; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true } }
         IconButton { size: 26; icon: "󰅖"; onClicked: Vault.closeSidebar() }
       }
       Rectangle { Layout.fillWidth: true; height: 1; color: Theme.bg3 }
@@ -28,8 +28,9 @@ Rectangle {
       Field { label: "Password"; secret: true; shown: !!Vault.shownPassword || Vault.fetching; value: Vault.shownPassword || (Vault.fetching ? "fetching…" : "•"); mono: !!Vault.shownPassword
         hasToggle: true; onToggle: Vault.togglePassword(); hasAction: true; onAction: Vault.copy(root.e, "password") }
       ColumnLayout { visible: !!root.e.hasOtp; spacing: 4; Layout.fillWidth: true
-        Field { label: "One-time code"; value: Vault.otpCode.replace(/(\d{3})(?=\d)/g, "$1 "); mono: true; hasAction: true; onAction: Vault.copy(root.e, "otp") }
-        Rectangle { Layout.fillWidth: true; height: 3; radius: 2; color: Theme.bg3
+        Field { label: "One-time code"; secret: true; shown: !!Vault.otpCode; value: Vault.otpCode.replace(/(\d{3})(?=\d)/g, "$1 ") || (Vault.otpShown ? "fetching…" : "•"); mono: !!Vault.otpCode
+          hasToggle: true; onToggle: Vault.toggleOtp(); hasAction: true; onAction: Vault.copy(root.e, "otp") }
+        Rectangle { Layout.fillWidth: true; height: 3; radius: 2; color: Theme.bg3; visible: Vault.otpShown
           Rectangle { width: parent.width * Vault.otpLeft / 30; height: parent.height; radius: 2; color: Vault.otpLeft <= 5 ? Theme.red : Theme.green
             Behavior on width { NumberAnimation { duration: 900 } } } }
       }

@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 # Vault metadata as JSON — id/title/url/login/email/hasOtp. No secrets.
+# Trust boundary: dcli output is bounded here (bytes, entry count, per-field length) and
+# schema-checked, so every consumer (QML models, menu generation) gets a known-shaped array.
 set -euo pipefail
 export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where install.sh puts dcli
+max_bytes=${DASHLANE_MAX_BYTES:-8388608}
+max_items=${DASHLANE_MAX_ITEMS:-5000}
+max_len=${DASHLANE_MAX_FIELD:-512}
 src() { if [[ -n ${DASHLANE_JSON:-} ]]; then cat "$DASHLANE_JSON"; else timeout 20 dcli p -o json </dev/null; fi; }  # DASHLANE_JSON = fixture for tests
-src | jq 'map({id,title,url,login,email,secondaryLogin,category,modificationDatetime,lastUse,numberUse,strength,hasOtp:((.otpSecret // "") != ""),hasNote:((.note // "") != "")})'
+raw=$(src | head -c $((max_bytes + 1)))
+(( $(printf %s "$raw" | wc -c) <= max_bytes )) || { echo "vault output larger than $max_bytes bytes — refusing" >&2; exit 1; }
+jq --argjson n "$max_items" --argjson l "$max_len" '
+  if type != "array" then error("vault output is not a JSON array") else . end
+  | .[:$n]
+  | map(select(type == "object" and (.id | type) == "string"))
+  | map({id,title,url,login,email,secondaryLogin,category,modificationDatetime,lastUse,numberUse,strength,hasOtp:((.otpSecret // "") != ""),hasNote:((.note // "") != "")}
+        | with_entries(.value |= if type == "string" then .[:$l] elif type == "number" or type == "boolean" or . == null then . else null end))
+' <<<"$raw"

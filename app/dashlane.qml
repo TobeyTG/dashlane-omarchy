@@ -58,7 +58,7 @@ ShellRoot {
       }
 
       LockedView { visible: Vault.locked; Layout.fillWidth: true; Layout.fillHeight: true }
-      Text { visible: Vault.status !== ""; text: Vault.status; color: Theme.fg2; font.family: Theme.font; font.pixelSize: 13; Layout.fillWidth: true; Layout.preferredWidth: 0; wrapMode: Text.Wrap }
+      Text { visible: Vault.status !== ""; textFormat: Text.PlainText; text: Vault.status; color: Theme.fg2; font.family: Theme.font; font.pixelSize: 13; Layout.fillWidth: true; Layout.preferredWidth: 0; wrapMode: Text.Wrap }
 
       RowLayout { visible: !Vault.locked; Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
         ListView {
@@ -79,7 +79,7 @@ ShellRoot {
         Text { Layout.fillWidth: true; Layout.preferredWidth: 0; elide: Text.ElideRight
           text: "⏎ password  ^L login  ^E email  ^O otp  → details  ^S reveal  ^N note  ^U open  ^R reload  esc"; color: Theme.fg2; font.family: Theme.font; font.pixelSize: 11 }
         Text { Layout.maximumWidth: parent.width / 2; elide: Text.ElideRight; horizontalAlignment: Text.AlignRight
-          text: toast; color: Theme.green; font.family: Theme.font; font.pixelSize: 12; font.bold: true }
+          textFormat: Text.PlainText; text: toast; color: Theme.green; font.family: Theme.font; font.pixelSize: 12; font.bold: true }
       }
     }
   }

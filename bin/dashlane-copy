@@ -3,8 +3,9 @@
 # dashlane-copy --stdin <field> [label]              — copy a value the caller already fetched (read from stdin).
 # --quiet (first arg) suppresses the desktop notification; the app and bar popup show their own toast.
 # One dcli call on the happy path (dcli costs ~0.6s per invocation). Security: the secret only
-# ever travels through pipes (never argv, never disk). --sensitive keeps it out of clipboard
-# history (Omarchy honours the hint); cleared after 30s. If the vault is locked, opens a terminal
+# ever travels through pipes (never argv, never disk), but it does live in this shell's memory and
+# in the detached helper that clears the clipboard after 30s. --sensitive keeps it out of clipboard
+# history (Omarchy honours the hint). If the vault is locked, opens a terminal
 # with the official CLI login (dcli sync) and retries.
 set -euo pipefail
 export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where install.sh puts dcli; callers (shell, hypridle) may lack it

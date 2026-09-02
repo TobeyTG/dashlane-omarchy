@@ -7,8 +7,8 @@ export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where ins
 menu=${DASHLANE_MENU_FILE:-$HOME/.config/omarchy/extensions/omarchy-menu.jsonc}
 src=${1:-}
 
-strip='map({id,title,url,login,email,hasOtp:((.otpSecret // "") != "")})'
-if [[ -n $src ]]; then json=$(jq "$strip" "$src"); else json=$(dashlane-list); fi   # metadata only — secrets never enter this script
+# metadata comes bounded and schema-checked from dashlane-list (file arg = offline/test input)
+if [[ -n $src ]]; then json=$(DASHLANE_JSON=$src dashlane-list); else json=$(dashlane-list); fi   # metadata only — secrets never enter this script
 
 # ids go into shell command strings: allow only the characters Dashlane actually uses
 bad=$(jq -r '.[].id' <<<"$json" | grep -vE '^[{}A-Za-z0-9_-]+$' || true)

@@ -4,7 +4,9 @@ set -euo pipefail
 export PATH="$PATH:$HOME/.local/bin"   # fallback only, never shadows: where install.sh puts dcli
 [[ $# -eq 2 ]] || { echo "usage: dashlane-field <id> <password|login|email|otp|note>" >&2; exit 2; }
 id=$1; f=$2
+case $f in password|login|email|otp|note) ;; *) echo "unknown field: $f" >&2; exit 2 ;; esac
+cap() { head -c "${DASHLANE_MAX_FIELD_BYTES:-4096}"; }   # bound what the UI can be handed
 case $f in
-  note) timeout 20 dcli p "id=$id" -o json </dev/null | jq -r '.[0].note // ""' ;;
-  *)    timeout 20 dcli p "id=$id" -f "$f" -o console </dev/null ;;
+  note) timeout 20 dcli p "id=$id" -o json </dev/null | jq -r '.[0].note // ""' | cap ;;
+  *)    timeout 20 dcli p "id=$id" -f "$f" -o console </dev/null | cap ;;
 esac
