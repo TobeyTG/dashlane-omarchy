@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/TobeyTG/dashlane-omarchy/compare/v0.1.1...v0.1.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* **security:** bound stdin copy, auto-hide notes, no /tmp marker file ([87dbe5b](https://github.com/TobeyTG/dashlane-omarchy/commit/87dbe5b6bae36db4f44c713f199456d986fcd63d))
+* **security:** bound vault data, no prefetch, safe install, pin CI ([e5e44eb](https://github.com/TobeyTG/dashlane-omarchy/commit/e5e44eb39f7e245da6916bff884e71d9a297d69d))
+
 ## [0.1.1](https://github.com/TobeyTG/dashlane-omarchy/compare/v0.1.0...v0.1.1) (2026-08-29)
 
 
