@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "tobeytg.dashlane",
   "name": "Dashlane",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": "TobeyTG",
   "license": "MIT",
   "description": "Dashlane vault for Omarchy: bar popup, full app, menu — on the official dcli",
