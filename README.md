@@ -64,6 +64,12 @@ o.bind("SUPER + SHIFT + P", "Passwords", "dashlane-app")
 o.bind("SUPER + ALT + P",   "Passwords menu", "omarchy-menu summon passwords")
 ```
 
+Widget options in `~/.config/omarchy/shell.json`:
+
+```bash
+omarchy bar set tobeytg.dashlane closeDelay 0 --json # ms the popup lingers after copy (default 600)
+```
+
 ## Security
 
 - **Auth and crypto are `dcli`'s.** Pinned release, sha256-verified. Unlock is dcli's own prompt.

@@ -68,7 +68,7 @@ Panel {
   Process { id: copier; property string field; stdout: StdioCollector {}
     onExited: function (code) { if (code === 0) { root.showToast("Copied " + copier.field); closeTimer.restart() } else root.showToast("Copy failed") } }
   Timer { id: toastTimer; interval: 1200; onTriggered: root.toast = "" }
-  Timer { id: closeTimer; interval: 600; onTriggered: root.close() }
+  Timer { id: closeTimer; interval: Math.max(0, root.setting("closeDelay", 600)); onTriggered: root.close() }
 
   IpcHandler { target: "tobeytg.dashlane"
     function open(): void { root.open() }
