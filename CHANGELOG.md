@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/TobeyTG/dashlane-omarchy/compare/v0.1.2...v0.2.0) (2026-09-09)
+
+
+### Features
+
+* **bar:** make the popup close delay configurable ([#3](https://github.com/TobeyTG/dashlane-omarchy/issues/3)) ([bea9349](https://github.com/TobeyTG/dashlane-omarchy/commit/bea93494d2c42475d3077536fa72f3bc2b43032b))
+
 ## [0.1.2](https://github.com/TobeyTG/dashlane-omarchy/compare/v0.1.1...v0.1.2) (2026-09-02)
 
 
